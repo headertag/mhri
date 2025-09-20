@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MHRI - Research Abstract</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        /* To use the 'Terminator Two' font, download the font file (e.g., 'terminator.ttf') 
+        and place it in the same directory as this HTML file. 
+        The @font-face rule below will then load it.
+        */
+        @font-face {
+            font-family: 'Terminator Two';
+            src: url('t2.ttf') format('truetype'); /* Assumes font file is named terminator.ttf */
+        }
+
+        /* --- THEME AND COLOR VARIABLES --- */
+        :root {
+            --bg-color: #000;
+            --text-color: #ff9900;
+            --accent-color: #FFA500;
+            --secondary-text-color: #c60;
+            --card-bg: #0a0a0a;
+            --border-color: rgba(255, 153, 0, 0.2);
+        }
+
+        body {
+            font-family: 'Roboto Mono', 'Courier New', Courier, monospace;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+        .logo-font {
+            font-family: 'Terminator Two', 'Arial Black', sans-serif;
+        }
+        .hero-bg {
+            background-color: #050505;
+            background-image: radial-gradient(circle at 1px 1px, var(--border-color) 1px, transparent 0);
+            background-size: 35px 35px;
+        }
+        .section-title-grad {
+            background: -webkit-linear-gradient(45deg, #ff9900, #FFA500);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .section-title {
+            color: var(--accent-color);
+        }
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+        }
+        .fade-in {
+            animation: fadeIn 1.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- Header -->
+    <header class="fixed top-0 left-0 right-0 z-50 bg-black/50 backdrop-blur-sm border-b" style="border-color: var(--border-color);">
+        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <h1 class="text-3xl font-bold tracking-widest text-white logo-font">
+                MHRI
+            </h1>
+            <nav class="hidden md:flex space-x-8 text-sm font-medium">
+                <a href="#abstract" class="text-gray-300 hover:text-orange-400 transition-colors">Abstract</a>
+                <a href="#methodology" class="text-gray-300 hover:text-orange-400 transition-colors">Methodology</a>
+                <a href="#applications" class="text-gray-300 hover:text-orange-400 transition-colors">Applications</a>
+                <a href="#advisor" class="text-gray-300 hover:text-orange-400 transition-colors">Advisor</a>
+            </nav>
+            <button class="md:hidden text-white">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <main class="pt-20">
+        <section class="hero-bg py-24 md:py-32">
+            <div class="container mx-auto px-6 text-center fade-in">
+                <h2 class="text-4xl md:text-5xl font-extrabold text-white leading-tight">
+                    A Foundational Model for Articulated Dexterity
+                    <span class="block section-title-grad mt-2">The Mirror Hand Robotics Initiative</span>
+                </h2>
+                <p class="mt-6 max-w-3xl mx-auto text-lg" style="color: var(--text-color);">
+                    An investigation into creating high-fidelity kinematic models of human hand dexterity for integration with general-purpose robotic platforms and large reasoning models.
+                </p>
+                <div class="mt-10">
+                    <a href="#abstract" class="bg-orange-500 text-black font-bold px-8 py-3 rounded-md hover:bg-orange-600 transition-all transform hover:scale-105">
+                        Read the Abstract
+                    </a>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Image of a futuristic robotic hand -->
+        <div class="container mx-auto px-6 -mt-16 md:-mt-24 relative z-10 fade-in" style="animation-delay: 200ms;">
+            <div class="aspect-w-16 aspect-h-9 rounded-xl shadow-2xl overflow-hidden border" style="border-color: var(--border-color);">
+                <img src="https://images.unsplash.com/photo-1594393282489-325a74304e22?q=80&w=2070&auto=format&fit=crop" 
+                onerror="this.onerror=null;this.src='https://placehold.co/1200x675/000000/ff9900?text=Robotic+Hand+Interface';"
+                alt="A sophisticated robotic hand interacting with a digital interface." class="w-full h-full object-cover">
+            </div>
+        </div>
+
+        <!-- Abstract Section -->
+        <section id="abstract" class="py-20 md:py-28">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-16 fade-in">
+                    <h2 class="text-sm font-bold uppercase tracking-widest section-title">Research Abstract</h2>
+                    <p class="mt-4 text-3xl md:text-4xl font-bold text-white">Modeling Human Dexterity for Robotic Systems</p>
+                </div>
+                <div class="max-w-4xl mx-auto text-lg leading-relaxed fade-in" style="animation-delay: 200ms; color: var(--text-color);">
+                    <p class="mb-6">
+                        The objective of the Mirror Hand Robotics Industries (MHRI) project is to deconstruct the kinematic and dynamic complexity of human hand manipulation to construct a foundational model of articulated dexterity. This research posits that by mirroring biological motion, robotic systems can achieve a significant leap in manipulative capability. The MHRI acronym is also representative of the project's focus on **M**ultimodal **H**uman-**R**obotic **I**nterfaces.
+                    </p>
+                    <p>
+                        Our approach utilizes commercially available robotic components and advanced data capture techniques—including motion capture gloves and video analysis—to build a comprehensive corpus of human hand movements. This data informs a universal "dexterity engine" designed for integration with diverse robotic platforms and AI reasoning models, aiming to unlock new potentials in automation and human-assistive technologies.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Methodology Section -->
+        <section id="methodology" class="py-20 md:py-28 bg-black/20">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-16 fade-in">
+                    <h2 class="text-sm font-bold uppercase tracking-widest section-title">Methodology</h2>
+                    <p class="mt-4 text-3xl md:text-4xl font-bold text-white">A Three-Phase Approach</p>
+                </div>
+                <div class="grid md:grid-cols-3 gap-8">
+                    <!-- Card 1: Data Acquisition -->
+                    <div class="card p-8 rounded-xl fade-in" style="animation-delay: 200ms;">
+                        <div class="flex items-center justify-center h-16 w-16 rounded-full bg-orange-500/10 border border-orange-500/30 mb-6">
+                           <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                        </div>
+                        <h3 class="text-xl font-bold text-white mb-3">1. Data Corpus Development</h3>
+                        <p style="color: var(--text-color);">
+                            A multi-modal data acquisition strategy is employed to capture high-fidelity hand motion. This includes data from haptic and motion capture gloves, alongside extensive video analysis of subjects performing a spectrum of complex manipulative tasks.
+                        </p>
+                    </div>
+                    <!-- Card 2: Detailed Modeling -->
+                    <div class="card p-8 rounded-xl fade-in" style="animation-delay: 400ms;">
+                        <div class="flex items-center justify-center h-16 w-16 rounded-full bg-orange-500/10 border border-orange-500/30 mb-6">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                        </div>
+                        <h3 class="text-xl font-bold text-white mb-3">2. Kinematic & Dynamic Modeling</h3>
+                        <p style="color: var(--text-color);">
+                            The aggregated data corpus is processed through machine learning frameworks to construct a detailed digital twin of human hand capabilities, modeling kinematic chains, force application, grip typologies, and fine-motor coordination.
+                        </p>
+                    </div>
+                    <!-- Card 3: Seamless Integration -->
+                    <div class="card p-8 rounded-xl fade-in" style="animation-delay: 600ms;">
+                         <div class="flex items-center justify-center h-16 w-16 rounded-full bg-orange-500/10 border border-orange-500/30 mb-6">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                        </div>
+                        <h3 class="text-xl font-bold text-white mb-3">3. Platform Agnostic Integration</h3>
+                        <p style="color: var(--text-color);">
+                           The resulting models are engineered for broad compatibility, enabling deployment on diverse hardware platforms and integration with large reasoning models (LRMs) via standardized APIs.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Applications Section -->
+        <section id="applications" class="py-20 md:py-28">
+             <div class="container mx-auto px-6">
+                <div class="text-center mb-16 fade-in">
+                    <h2 class="text-sm font-bold uppercase tracking-widest section-title">Domains of Application</h2>
+                    <p class="mt-4 text-3xl md:text-4xl font-bold text-white">Potential Areas for Further Research</p>
+                </div>
+                <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+                    <div class="group relative fade-in" style="animation-delay: 200ms;">
+                        <div class="absolute -inset-0.5 bg-gradient-to-r from-orange-600 to-yellow-600 rounded-lg blur opacity-25 group-hover:opacity-75 transition duration-1000 group-hover:duration-200"></div>
+                        <div class="relative p-8 bg-gray-900 rounded-lg leading-none flex flex-col h-full">
+                            <h4 class="text-lg font-bold text-white">Advanced Manufacturing</h4>
+                            <p class="mt-2 text-sm" style="color: var(--text-color);">Automation of intricate assembly, quality control, and delicate material handling tasks.</p>
+                        </div>
+                    </div>
+                    <div class="group relative fade-in" style="animation-delay: 400ms;">
+                         <div class="absolute -inset-0.5 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-lg blur opacity-25 group-hover:opacity-75 transition duration-1000 group-hover:duration-200"></div>
+                        <div class="relative p-8 bg-gray-900 rounded-lg leading-none flex flex-col h-full">
+                            <h4 class="text-lg font-bold text-white">Teleoperation</h4>
+                            <p class="mt-2 text-sm" style="color: var(--text-color);">High-fidelity remote manipulation for applications in surgery, hazardous material disposal, and exploration.</p>
+                        </div>
+                    </div>
+                    <div class="group relative fade-in" style="animation-delay: 600ms;">
+                        <div class="absolute -inset-0.5 bg-gradient-to-r from-orange-500 to-red-600 rounded-lg blur opacity-25 group-hover:opacity-75 transition duration-1000 group-hover:duration-200"></div>
+                        <div class="relative p-8 bg-gray-900 rounded-lg leading-none flex flex-col h-full">
+                            <h4 class="text-lg font-bold text-white">Assistive Robotics</h4>
+                            <p class="mt-2 text-sm" style="color: var(--text-color);">Development of sophisticated prosthetics and assistive robots with near-human grasping and manipulation capabilities.</p>
+                        </div>
+                    </div>
+                    <div class="group relative fade-in" style="animation-delay: 800ms;">
+                         <div class="absolute -inset-0.5 bg-gradient-to-r from-yellow-600 to-orange-400 rounded-lg blur opacity-25 group-hover:opacity-75 transition duration-1000 group-hover:duration-200"></div>
+                        <div class="relative p-8 bg-gray-900 rounded-lg leading-none flex flex-col h-full">
+                            <h4 class="text-lg font-bold text-white">Experimental Sciences</h4>
+                            <p class="mt-2 text-sm" style="color: var(--text-color);">Enabling robotic platforms to perform delicate laboratory procedures with high precision and repeatability.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Advisor Section -->
+    <footer id="advisor" class="py-20 md:py-28 bg-black border-t" style="border-color: var(--border-color);">
+        <div class="container mx-auto px-6">
+            <div class="text-center mb-16 fade-in">
+                <h2 class="text-sm font-bold uppercase tracking-widest section-title">Advisor</h2>
+            </div>
+            <div class="max-w-4xl mx-auto grid md:grid-cols-3 gap-8 items-center">
+                <div class="md:col-span-1 flex justify-center fade-in" style="animation-delay: 200ms;">
+                    <!-- Placeholder for headshot image -->
+                    <div class="w-48 h-48 bg-gray-800 rounded-full border-2" style="border-color: var(--border-color); display: flex; align-items: center; justify-content: center; text-align: center;">
+                        <span class="text-xs" style="color: var(--secondary-text-color);">Photo Placeholder</span>
+                    </div>
+                </div>
+                <div class="md:col-span-2 text-left fade-in" style="animation-delay: 400ms;">
+                    <h3 class="text-2xl font-bold text-white">Jourdain-Alexander Casale</h3>
+                    <p class="mt-4 text-base leading-relaxed" style="color: var(--text-color);">
+                        Jourdain-Alexander Casale is an executive and technologist with over two decades of experience building and optimizing complex digital marketplaces. After architecting Hewlett-Packard's global B2B platform, he helped get Casale Media (now Index Exchange) started, where he was a key technology leader and an early champion for header bidding. Currently serving as VP of Product Management at Index Exchange, his focus is on leveraging agentic AI to enhance platform architecture and operational efficiency. His career is marked by a deep expertise in systems analysis, platform modernization, and driving industry-wide technological shifts. He is a man dedicated to faith in God, love of family, and the advancement of peace and freedom for human civilization.
+                    </p>
+                    <div class="mt-6 flex space-x-6 text-sm">
+                        <a href="https://www.linkedin.com/in/jourdain-alexander-casale" target="_blank" rel="noopener noreferrer" class="hover:text-orange-400 transition-colors">LinkedIn</a>
+                        <a href="https://github.com/headertag" target="_blank" rel="noopener noreferrer" class="hover:text-orange-400 transition-colors">GitHub: @headertag</a>
+                        <a href="https://x.com/headertag" target="_blank" rel="noopener noreferrer" class="hover:text-orange-400 transition-colors">X: @headertag</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Simple smooth scroll for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+    </script>
+</body>
+</html>
