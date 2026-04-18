@@ -7,15 +7,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
-        /* To use the 'Terminator Two' font, download the font file (e.g., 't2.ttf') 
-        and place it in the same directory as this HTML file. 
-        The @font-face rule below will then load it.
-        */
-        @font-face {
-            font-family: 'Terminator Two';
-            src: url('t2.ttf') format('truetype'); /* Assumes font file is named t2.ttf */
-        }
-
         /* --- THEME AND COLOR VARIABLES --- */
         :root {
             --bg-color: #000;
@@ -31,13 +22,15 @@
             background-color: var(--bg-color);
             color: var(--text-color);
         }
-        .logo-font {
-            font-family: 'Terminator Two', 'Arial Black', sans-serif;
-        }
         .hero-bg {
             background-color: #050505;
             background-image: radial-gradient(circle at 1px 1px, var(--border-color) 1px, transparent 0);
             background-size: 35px 35px;
+        }
+        .logo-svg {
+            height: 2.25rem; /* Matches text-3xl roughly */
+            width: auto;
+            color: white;
         }
         .section-title-grad {
             background: -webkit-linear-gradient(45deg, #ff9900, #FFA500);
@@ -65,20 +58,34 @@
     <!-- Header -->
     <header class="fixed top-0 left-0 right-0 z-50 bg-black/50 backdrop-blur-sm border-b" style="border-color: var(--border-color);">
         <div class="container mx-auto px-6 py-4 flex justify-between items-center">
-            <h1 class="text-3xl font-bold tracking-widest text-white logo-font">
-                MHRI
-            </h1>
+            <a href="/" class="flex items-center">
+                <svg viewBox="0 -800 2450 800" class="logo-svg" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+                    <path d="M450 0H300V500H200Q199 499 197.5 499.0Q196 499 195 499Q178 497 164.0 483.0Q150 469 150 449V0H0V450Q0 532 59.0 590.5Q118 649 200 649L550 650Q633 649 691.5 590.5Q750 532 750 449V0H600V450Q600 470 585.5 484.5Q571 499 550 499L450 500V0Z" transform="translate(0, 0) scale(1, -1)" />
+                    <path d="M500 250H150V0H0V650H150V400H500V650H650V0H500V250Z" transform="translate(800, 0) scale(1, -1)" />
+                    <path d="M0 650Q0 649 77.5 649.0Q155 649 248 649Q328 649 398.5 649.0Q469 649 489 649Q572 649 630.5 590.5Q689 532 689 449Q689 415 679.0 384.5Q669 354 653 328Q676 302 688.0 269.0Q700 236 700 199V0H550V200Q550 218 537.5 232.0Q525 246 508 249Q506 249 450.5 249.0Q395 249 329 249Q262 249 206.0 249.0Q150 249 150 249V-1H0V650ZM494 500H150V400H494Q514 399 529.0 414.0Q544 429 544 449Q544 470 529.0 484.5Q514 499 494 499Z" transform="translate(1500, 0) scale(1, -1)" />
+                    <path d="M150 0H0V650H150V0Z" transform="translate(2250, 0) scale(1, -1)" />
+                </svg>
+            </a>
             <nav class="hidden md:flex space-x-8 text-sm font-medium">
                 <a href="#abstract" class="text-gray-300 hover:text-orange-400 transition-colors">Abstract</a>
                 <a href="#methodology" class="text-gray-300 hover:text-orange-400 transition-colors">Methodology</a>
                 <a href="#applications" class="text-gray-300 hover:text-orange-400 transition-colors">Applications</a>
                 <a href="#advisor" class="text-gray-300 hover:text-orange-400 transition-colors">Advisor</a>
             </nav>
-            <button class="hidden md:hidden text-white">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <button id="mobile-menu-button" class="md:hidden text-white focus:outline-none">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
                 </svg>
             </button>
+        </div>
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden md:hidden bg-black/90 backdrop-blur-md border-b" style="border-color: var(--border-color);">
+            <nav class="flex flex-col space-y-4 px-6 py-6 text-base font-medium">
+                <a href="#abstract" class="text-gray-300 hover:text-orange-400 transition-colors mobile-link">Abstract</a>
+                <a href="#methodology" class="text-gray-300 hover:text-orange-400 transition-colors mobile-link">Methodology</a>
+                <a href="#applications" class="text-gray-300 hover:text-orange-400 transition-colors mobile-link">Applications</a>
+                <a href="#advisor" class="text-gray-300 hover:text-orange-400 transition-colors mobile-link">Advisor</a>
+            </nav>
         </div>
     </header>
 
@@ -250,6 +257,23 @@
     </footer>
 
     <script>
+        // Mobile menu toggle
+        const menuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+        const mobileLinks = document.querySelectorAll('.mobile-link');
+
+        if (menuButton && mobileMenu) {
+            menuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+        }
+
+        mobileLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                mobileMenu.classList.add('hidden');
+            });
+        });
+
         // Simple smooth scroll for anchor links
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
             anchor.addEventListener('click', function (e) {
