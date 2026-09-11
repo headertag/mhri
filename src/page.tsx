@@ -22,7 +22,7 @@ function Copyright() {
       window.removeEventListener('focus', updateYear);
     };
   }, []);
-  return <p className="copyright">© <span suppressHydrationWarning>{toRomanYear(year)}</span> Magnifica Humanitas Redemptoris Iesu. All rights reserved.</p>;
+  return <p className="copyright">© <span suppressHydrationWarning>{toRomanYear(year)}</span> Magnifica Humanitas Redemptoris Iesu. <span className="copyright-rights">All rights reserved.</span></p>;
 }
 
 export default function Home() {
