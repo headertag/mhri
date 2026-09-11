@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { ArrowUpRight } from 'lucide-react';
+import { ArrowUpRight, Check } from 'lucide-react';
+import { Checkbox } from '@base-ui/react/checkbox';
 import { Dialog, DialogTrigger, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
@@ -30,6 +31,8 @@ export default function Home() {
   const [depth,setDepth]=useState(75);
   const [cloudSpeed,setCloudSpeed]=useState(1.5);
   const [focus,setFocus]=useState(true);
+  // An opt-in interpretation: every new visit starts with the painting.
+  const [neuromancer,setNeuromancer]=useState(false);
   const [reduced,setReduced]=useState(false);
   const [ready,setReady]=useState(false);
   useEffect(()=>{
@@ -64,7 +67,7 @@ export default function Home() {
         </filter>
       </defs>
     </svg>
-    <Artwork motion={motion} original={original} depth={depth} focus={focus} cloudSpeed={cloudSpeed}/>
+    <Artwork motion={motion} original={original} depth={depth} focus={focus} cloudSpeed={cloudSpeed} neuromancer={neuromancer} signalMotion={motion&&!reduced}/>
     <header className="masthead"><a className="wordmark" href="/" aria-label="MHRI — Magnifica Humanitas Redemptoris Iesu"><span>MHRI</span></a></header>
     <footer className="viewer-footer">
       <Copyright />
@@ -78,7 +81,13 @@ export default function Home() {
         <div className="depth-setting"><div className="setting-label"><label id="depth-label">Depth</label><output>{depth}%</output></div><Slider aria-labelledby="depth-label" value={[depth]} min={0} max={100} step={5} onValueChange={v=>setDepth(Array.isArray(v)?v[0]:v)}/></div>
         <div className="depth-setting"><div className="setting-label"><label id="cloud-speed-label">Cloud speed</label><output>{cloudSpeed===0?'Still':`${cloudSpeed}×`}</output></div><Slider aria-labelledby="cloud-speed-label" value={[cloudSpeed]} min={0} max={4} step={.25} onValueChange={v=>setCloudSpeed(Array.isArray(v)?v[0]:v)}/></div>
         <div className="setting-row"><label htmlFor="focus-switch">Atmospheric focus</label><Switch id="focus-switch" checked={focus} onCheckedChange={setFocus}/></div>
-        <div className="setting-row"><label htmlFor="original-switch">Show original painting</label><Switch id="original-switch" checked={original} onCheckedChange={setOriginal}/></div>
+        <div className="setting-row"><label htmlFor="original-switch">Show original painting</label><Switch id="original-switch" checked={original} onCheckedChange={value=>{setOriginal(value);if(value)setNeuromancer(false);}}/></div>
+        <div className="setting-row neuromancer-setting">
+          <label htmlFor="neuromancer-checkbox">Neuromancer mode</label>
+          <Checkbox.Root id="neuromancer-checkbox" className="mode-checkbox" checked={neuromancer} onCheckedChange={value=>{setNeuromancer(value);if(value)setOriginal(false);}}>
+            <Checkbox.Indicator className="mode-check"><Check size={15} aria-hidden="true"/></Checkbox.Indicator>
+          </Checkbox.Root>
+        </div>
         <div className="art-credit">Public-domain artwork. Supplied reproduction.<br/>The painted figure is preserved. The landscape is extended for this immersive presentation.</div>
       </DialogContent></Dialog>
     </footer>

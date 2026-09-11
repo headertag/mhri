@@ -18,3 +18,30 @@
 @media(max-width:700px){.masthead{top:max(23px,env(safe-area-inset-top));left:max(23px,env(safe-area-inset-left))}.wordmark span{font-size:32px}.art-frame{height:auto;width:min(calc(100vw - 30px),calc((100dvh - 80px)*.633333));max-width:none;top:51%}.viewer-footer{left:max(14px,env(safe-area-inset-left));right:max(14px,env(safe-area-inset-right));column-gap:12px;bottom:max(9px,env(safe-area-inset-bottom))}.view-dialog{padding:27px!important}.has-focus .landscape-space{filter:blur(.55px)}}
 @media(max-height:500px) and (min-width:701px){.art-frame{height:calc(100% - 24px);top:48%}.masthead{top:20px;left:23px}.wordmark span{font-size:32px}.viewer-footer{right:max(20px,env(safe-area-inset-right));bottom:max(9px,env(safe-area-inset-bottom))}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;animation-duration:0s!important;transition-duration:0s!important}.art-frame,.landscape-space,.near-landscape,.halo-aureole,.cloud-sky{will-change:auto}}
+
+/* Opt-in projection treatment. Interface text stays outside this scene layer. */
+.mode-checkbox{position:relative;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:44px;height:44px;margin:-11px -4px -11px 0;cursor:pointer;outline:none;}
+.mode-checkbox::before{content:"";position:absolute;width:21px;height:21px;border:1px solid #bba574;border-radius:3px;background:#121c17;}
+.mode-checkbox[data-checked]::before{background:#d1b777;border-color:#e5ce98;}
+.mode-checkbox:focus-visible::before{outline:2px solid #efd79f;outline-offset:4px;}
+.mode-check{position:relative;z-index:1;color:#14241c;display:flex;}
+.neuromancer-setting label{cursor:pointer;}
+.is-neuromancer{background:#030c18;}
+.is-neuromancer .landscape-space{filter:saturate(.98) brightness(.96) contrast(1.025);}
+.is-neuromancer.has-focus .landscape-space{filter:blur(.8px) saturate(.98) brightness(.96) contrast(1.025);}
+.is-neuromancer .near-landscape{filter:saturate(.98) brightness(.94);}
+.is-neuromancer .subject-plane{filter:drop-shadow(-1px 0 0 #ff395844) drop-shadow(1px 0 0 #38d8ff44);opacity:.98;}
+.is-neuromancer .figure-mesh{filter:drop-shadow(0 0 2px #52bfff20);}
+.projection-pool{position:absolute;left:45%;top:94.5%;width:73%;height:7%;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(ellipse,#b7faff34 0%,#41d8ff26 30%,#008bfa14 54%,transparent 72%);box-shadow:inset 0 1px 0 #70dfff12;opacity:.22;pointer-events:none;}
+.signal-atmosphere{position:absolute;inset:0;overflow:hidden;pointer-events:none;}
+.signal-tint,.signal-lines,.signal-vignette{position:absolute;inset:0;}
+.signal-tint{background:radial-gradient(ellipse at 90% 18%,#d020ca09,transparent 50%),radial-gradient(ellipse at 8% 86%,#0baade0d,transparent 52%);mix-blend-mode:screen;}
+.signal-lines{background:repeating-linear-gradient(0deg,#01091740 0 1px,transparent 1px 4px);opacity:.34;}
+.signal-sweep{position:absolute;inset:-100% 0;background:linear-gradient(transparent 43%,#41c9fb03 46%,#acfaff0b 49.8%,#77ebff15 50%,transparent 50.3%);transform:translateY(-25%);mix-blend-mode:screen;}
+.signal-noise{position:absolute;inset:-5%;width:110%;height:110%;opacity:.035;mix-blend-mode:screen;}
+.signal-vignette{background:radial-gradient(ellipse at 50% 44%,transparent 33%,#02051610 80%,#01051435 100%);}
+.has-signal-motion .signal-sweep{animation:projection-scan 14s linear infinite;}
+.has-signal-motion .signal-noise{animation:projection-grain 7s steps(5,end) infinite;}
+@keyframes projection-scan{from{transform:translateY(-25%)}to{transform:translateY(25%)}}
+@keyframes projection-grain{0%,100%{transform:translate(0,0)}23%{transform:translate(-1%,1%)}49%{transform:translate(1%,-1%)}72%{transform:translate(-1%,-1%)}}
+@media(prefers-reduced-motion:reduce){.signal-sweep,.signal-noise{animation:none!important;}}

@@ -11,7 +11,7 @@ const staff = 'M 473 1117 L 610 647 L 646 551 L 675 450 L 703 349 L 725 278 C 73
 // Only the visible painted arc, never a broad ring of the old sky.
 const halo = 'M 357 110 C 369 79 400 64 433 64 C 474 62 507 92 515 132 L 517 147';
 
-export function Artwork({ motion, original, depth, focus, cloudSpeed }: {motion:boolean;original:boolean;depth:number;focus:boolean;cloudSpeed:number}) {
+export function Artwork({ motion, original, depth, focus, cloudSpeed, neuromancer, signalMotion }: {motion:boolean;original:boolean;depth:number;focus:boolean;cloudSpeed:number;neuromancer:boolean;signalMotion:boolean}) {
   const root = useRef<HTMLDivElement>(null);
   const target = useRef({x:0,y:0,last:0,active:false});
   const speed = useRef(cloudSpeed);
@@ -51,7 +51,7 @@ export function Artwork({ motion, original, depth, focus, cloudSpeed }: {motion:
     target.current.y=Math.max(-1,Math.min(1,(e.clientY-r.top)/r.height*2-1));
     target.current.last=performance.now();
   }
-  return <div ref={root} className={`art-interaction ${original?'is-original':''} ${focus&&!original?'has-focus':''}`} tabIndex={0} role="region" aria-label="The Good Shepherd interactive artwork. Move your pointer, drag with a finger, or use the arrow keys to explore depth."
+  return <div ref={root} className={`art-interaction ${original?'is-original':''} ${focus&&!original?'has-focus':''} ${neuromancer&&!original?'is-neuromancer':''} ${signalMotion?'has-signal-motion':''}`} tabIndex={0} role="region" aria-label="The Good Shepherd interactive artwork. Move your pointer, drag with a finger, or use the arrow keys to explore depth."
     onPointerDown={e=>{if(!motion||original)return;target.current.active=true;e.currentTarget.setPointerCapture(e.pointerId);point(e);}}
     onPointerMove={point} onPointerUp={e=>{target.current.active=false;target.current.last=performance.now();if(e.currentTarget.hasPointerCapture(e.pointerId))e.currentTarget.releasePointerCapture(e.pointerId);}}
     onPointerCancel={()=>{target.current.active=false;target.current.last=performance.now();}}
@@ -65,6 +65,7 @@ export function Artwork({ motion, original, depth, focus, cloudSpeed }: {motion:
     <figure className="art-frame">
       <div className={`scene-window ${meshReady?'mesh-ready':''}`}>
         <div className="halo-aureole" aria-hidden="true" />
+        {neuromancer&&!original&&<div className="projection-pool" aria-hidden="true"/>}
         <img className="painting original-painting" src="/art/le-bon-pasteur.png" alt="Le Bon Pasteur: Christ wears a blue mantle and pink tunic, carries a sheep across his shoulders, and holds a staff in a wooded landscape." width="798" height="1260" fetchPriority="high" draggable="false" />
         <svg className="depth-scene" viewBox="0 0 798 1260" aria-hidden="true" focusable="false">
           <defs>
@@ -92,9 +93,19 @@ export function Artwork({ motion, original, depth, focus, cloudSpeed }: {motion:
             <use href="#original-art" mask="url(#subject-mask)" className="figure-detail"/>
           </g>
         </svg>
-        <FigureMesh shape={figure} motion={motion&&!original} onReady={setMeshReady}/>
+        <FigureMesh shape={figure} motion={motion&&!original} onReady={setMeshReady} neuromancer={neuromancer&&!original} signalMotion={signalMotion}/>
       </div>
       <figcaption className="sr-only">Le Bon Pasteur, Musée national de Port-Royal des Champs. The original painted figure appears over an extended landscape.</figcaption>
     </figure>
+    {neuromancer&&!original&&<div className="signal-atmosphere" aria-hidden="true">
+      <div className="signal-tint"/>
+      <div className="signal-lines"/>
+      <div className="signal-sweep"/>
+      <svg className="signal-noise" width="100%" height="100%" focusable="false">
+        <defs><filter id="signal-grain"><feTurbulence type="fractalNoise" baseFrequency=".82" numOctaves="1" seed="17"/><feColorMatrix type="saturate" values="0"/></filter></defs>
+        <rect width="100%" height="100%" filter="url(#signal-grain)"/>
+      </svg>
+      <div className="signal-vignette"/>
+    </div>}
   </div>;
 }

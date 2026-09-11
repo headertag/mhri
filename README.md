@@ -107,13 +107,24 @@ Open **About the painting** at the bottom right to find:
 | Depth | Adjusts parallax intensity from 0–100%; default 75%. |
 | Cloud speed | Changes cloud motion from still to 4×; default 1.5×. |
 | Atmospheric focus | Toggles the restrained blur on landscape layers. |
-| Show original painting | Shows the complete supplied portrait without the animated subject treatment. |
+| Show original painting | Shows the complete supplied portrait without the animated subject treatment; turns Neuromancer mode off. |
+| Neuromancer mode | An unchecked-by-default checkbox for an optional holographic interpretation. |
 
 The application respects the device’s `prefers-reduced-motion` setting at startup and stops motion if that preference changes to reduced motion. A viewer may also use the Motion control. Preferences are saved only in the browser’s `localStorage`, under `mhri-view`; they are not transmitted to a server.
 
 The dialog uses Base UI primitives with keyboard focus management, accessible names and switches. The artwork region supports arrow keys; links and buttons have visible focus states. A static portrait is supplied for visitors without JavaScript. No formal WCAG conformance audit is claimed.
 
 The copyright year comes from the visitor’s current date and is converted to Roman numerals: **2026 → MMXXVI**. It refreshes every minute and on focus or visibility changes, so a tab left open over New Year updates without a new deployment.
+
+## Neuromancer mode
+
+An optional checkbox in **About the painting** gives the scene a retro holographic treatment: the original painting colours with red/blue channel separation, a slight cool tint, scan lines, grain, a travelling scan band and occasional local signal tears. The interface remains readable outside the effect layers.
+
+The figure effect is computed in the existing WebGL fragment shader using the same original texture and corrected silhouette. It samples the red and blue channels at small opposing offsets while keeping green aligned, rather than mapping the painting into a monochrome blue palette. It does not replace or rewrite any artwork assets. A short glitch window occurs once per eleven-second cycle and affects small horizontal regions instead of flashing the whole screen. The existing cloth mesh and parallax continue to work. The SVG fallback receives a restrained red/cyan edge treatment when WebGL is unavailable.
+
+The checkbox **starts unchecked on every page load** and is deliberately excluded from saved preferences. Checking it exits the original-painting comparison; selecting **Show original painting** unchecks it. Unchecking Neuromancer mode restores the normal painting treatment immediately.
+
+**Motion off** freezes the signal animation while retaining the static holographic appearance. The mode also suppresses signal animation when the device requests reduced motion. Scan lines, tint and grain remain visible as static effects. All screen overlays ignore pointer input and are hidden from assistive technology.
 
 ## Run locally
 
@@ -194,6 +205,7 @@ For changes, build locally and review the following before pushing:
 - Clouds drift behind the trees, and speed changes do not jump.
 - The About dialog opens, closes with Escape and can be operated by keyboard.
 - Reduced motion, Motion off, and the original-painting comparison work.
+- Neuromancer mode starts unchecked; its checkbox works by keyboard, toggles the effect cleanly, and honours Motion off and reduced motion.
 - MHRI is readable, the footer stays unobtrusive, and `dist/CNAME` matches `CNAME`.
 
 Keep original artwork assets separate from interpretive extensions. Do not overwrite `le-bon-pasteur.png` with a generated or composited scene: the original view, texture sampling and research comparison all depend on it.

@@ -30,33 +30,72 @@ const vertexShader = `
 `;
 
 const fragmentShader = `
-  precision mediump float;
+  precision highp float;
   uniform sampler2D uPainting;
+  uniform float uTime;
+  uniform float uHologram;
+  uniform float uSignalMotion;
   varying vec2 vUV;
   varying float vLight;
+  float noise(vec2 p) {
+    return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
+  }
   void main() {
     vec4 painted = texture2D(uPainting, vUV);
-    gl_FragColor = vec4(painted.rgb * vLight, painted.a);
+    if (uHologram < 0.5) {
+      gl_FragColor = vec4(painted.rgb * vLight, painted.a);
+      return;
+    }
+    // A brief, local signal tear once per cycle. No full-screen flashes.
+    float time = uTime * uSignalMotion;
+    float cycle = mod(time, 11.0);
+    float burst = smoothstep(8.4, 8.6, cycle) * (1.0 - smoothstep(8.9, 9.1, cycle)) * uSignalMotion;
+    float row = floor(vUV.y * 32.0);
+    float rowNoise = noise(vec2(row, floor(time * 3.0)));
+    float tear = step(0.76, rowNoise) * (rowNoise - 0.5) * 0.022 * burst;
+    vec2 uv = vUV + vec2(tear, 0.0);
+    painted = texture2D(uPainting, uv);
+    float separation = 0.003 + burst * 0.005;
+    vec4 redEcho = texture2D(uPainting, uv + vec2(separation, 0.0));
+    vec4 blueEcho = texture2D(uPainting, uv - vec2(separation, 0.0));
+    // Preserve the original pigments; displace channels instead of recolouring.
+    vec3 split = vec3(redEcho.r, painted.g, blueEcho.b);
+    vec3 signal = mix(painted.rgb, split, 0.88);
+    signal *= vec3(0.99, 1.0, 1.025); // Only a very slight cool bias.
+    float scan = 0.975 + 0.025 * sin(vUV.y * 1260.0 * 1.57);
+    float grain = (noise(floor(vUV * vec2(798.0, 1260.0)) + floor(time * 5.0)) - 0.5) * 0.022;
+    float sweep = max(0.0, 1.0 - abs(vUV.y - fract(time * 0.075)) / 0.055);
+    signal *= scan * vLight + grain + sweep * 0.055;
+    float alpha = max(painted.a, max(redEcho.a, blueEcho.a) * 0.65) * 0.97;
+    gl_FragColor = vec4(clamp(signal * 0.97, 0.0, alpha), alpha);
   }
 `;
 
-type Renderer = { setMotion: (value: boolean) => void };
+type Renderer = { redraw: () => void };
 
 /** Original painted pixels on a connected 64 × 100 grid of triangles. */
-export function FigureMesh({ shape, motion, onReady }: {
+export function FigureMesh({ shape, motion, onReady, neuromancer, signalMotion }: {
   shape: string;
   motion: boolean;
   onReady: (ready: boolean) => void;
+  neuromancer: boolean;
+  signalMotion: boolean;
 }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const renderer = useRef<Renderer | null>(null);
   const motionState = useRef(motion);
+  const signalState = useRef({enabled:neuromancer,animate:signalMotion});
   const [contextVersion, setContextVersion] = useState(0);
 
   useEffect(() => {
     motionState.current = motion;
-    renderer.current?.setMotion(motion);
+    renderer.current?.redraw();
   }, [motion]);
+
+  useEffect(() => {
+    signalState.current = {enabled:neuromancer,animate:signalMotion};
+    renderer.current?.redraw();
+  }, [neuromancer,signalMotion]);
 
   useEffect(() => {
     const surface = canvas.current;
@@ -166,6 +205,8 @@ export function FigureMesh({ shape, motion, onReady }: {
       gl.uniform1i(gl.getUniformLocation(program, 'uPainting'), 0);
       const timeUniform = gl.getUniformLocation(program, 'uTime');
       const motionUniform = gl.getUniformLocation(program, 'uMotion');
+      const hologramUniform = gl.getUniformLocation(program, 'uHologram');
+      const signalMotionUniform = gl.getUniformLocation(program, 'uSignalMotion');
       gl.enable(gl.BLEND);
       gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
       gl.clearColor(0, 0, 0, 0);
@@ -173,6 +214,8 @@ export function FigureMesh({ shape, motion, onReady }: {
         gl.clear(gl.COLOR_BUFFER_BIT);
         gl.uniform1f(timeUniform, elapsed);
         gl.uniform1f(motionUniform, motionState.current ? 1 : 0);
+        gl.uniform1f(hologramUniform, signalState.current.enabled ? 1 : 0);
+        gl.uniform1f(signalMotionUniform, signalState.current.animate ? 1 : 0);
         gl.drawElements(gl.TRIANGLES, triangles.length, gl.UNSIGNED_SHORT, 0);
       };
       const resize = () => {
@@ -186,7 +229,7 @@ export function FigureMesh({ shape, motion, onReady }: {
       observer.observe(surface!);
       cleanups.push(() => observer.disconnect());
       resize();
-      renderer.current = { setMotion: restart };
+      renderer.current = { redraw: restart };
       onReady(true);
       restart();
     }
