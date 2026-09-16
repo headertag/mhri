@@ -1,7 +1,9 @@
-name: Deploy MHRI to GitHub Pages
+name: Deploy MHRI to Fly.io
 
 on:
   push:
+    branches: [main]
+  pull_request:
     branches: [main]
   workflow_dispatch:
 
@@ -9,7 +11,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: github-pages
+  group: mhri-fly-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -22,27 +24,29 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version-file: .nvmrc
-          cache: npm
-      - name: Install locked dependencies
-        run: npm ci
-      - name: Check types and build
-        run: npm run build
-      - name: Upload the static site
-        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5
-        with:
-          path: dist
+      - name: Build production container
+        run: docker build --pull -t mhri-ci .
+      - name: Check production server
+        run: |
+          docker run --detach --name mhri-ci --publish 127.0.0.1:8080:8080 mhri-ci
+          trap 'docker logs mhri-ci; docker rm --force mhri-ci' EXIT
+          curl --fail --retry 10 --retry-connrefused --retry-delay 1 http://127.0.0.1:8080/healthz
+          node scripts/check-server.mjs http://127.0.0.1:8080
   deploy:
     needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
-    permissions:
-      pages: write
-      id-token: write
     environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      name: production
+      url: https://mhri.fly.dev
     steps:
-      - name: Configure GitHub Pages
-        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6
-      - name: Publish
-        id: deployment
-        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Set up Fly CLI
+        uses: superfly/flyctl-actions/setup-flyctl@ed8efb33836e8b2096c7fd3ba1c8afe303ebbff1
+        with:
+          version: '0.4.102'
+      - name: Deploy
+        run: flyctl deploy --remote-only --ha=false
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

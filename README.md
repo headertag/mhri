@@ -4,7 +4,7 @@
 
 An immersive, full-viewport presentation of *Le Bon Pasteur* (*The Good Shepherd*). The intention is to give the viewer the feeling of standing inside the painting: the figure remains the centre of attention, while landscape, atmosphere, light and a restrained movement of fabric create depth.
 
-This repository contains the complete demonstration site, its artwork assets, and the GitHub Pages deployment workflow. It is a static React application; it needs no application server, database, account, or API key.
+This repository contains the complete demonstration site, its artwork assets, and the Fly.io deployment workflow. The React application is built into static assets and served by an unprivileged NGINX container; visitors need no account, database connection, or API key.
 
 <img src="public/art/le-bon-pasteur.png" alt="The supplied reproduction of Le Bon Pasteur: Christ carries a sheep and wears a blue mantle over a pink tunic" width="240" />
 
@@ -161,43 +161,42 @@ npm run build
 npm run preview
 ```
 
-`npm run build` checks TypeScript, writes the static site to `dist/`, then copies the existing root `CNAME` into that output and adds `.nojekyll`. The preview command prints its local URL. Open the site through a web server rather than directly as a `file://` document, because modules and the artwork texture need HTTP URLs.
+`npm run build` checks TypeScript and writes the static site to `dist/`. The preview command prints its local URL. Open the site through a web server rather than directly as a `file://` document, because modules and the artwork texture need HTTP URLs.
 
-## Deployment to GitHub Pages
+## Deployment to Fly.io
 
-`.github/workflows/deploy.yml` builds and deploys on pushes to `main`; it can also be started from the repository’s Actions tab.
+The site runs as the **mhri** Fly application in the **Pretiola** organization, in **Toronto (yyz)**. The preview address is https://mhri.fly.dev/; the canonical public address remains https://mhri.net/.
 
-1. Install exactly the versions in `package-lock.json` using `npm ci`.
-2. Check types and produce the static build.
-3. Upload only `dist/` as the Pages artifact.
-4. Deploy that artifact to the `github-pages` environment.
+A multi-stage Docker build uses Node 22 and the existing locked dependencies to check and bundle the React application. The final container runs unprivileged NGINX on port 8080. Fly Proxy terminates TLS and enforces HTTPS. NGINX redirects `www.mhri.net` to `https://mhri.net` while preserving the path and query string. Missing files return 404; the HTML is revalidated, hashed bundles have immutable caching, and artwork/font files have a one-hour cache lifetime.
 
-The repository’s Pages source is **GitHub Actions**. The original **`CNAME` file is preserved unchanged** and specifies **mhri.net**. Vite therefore uses `/` as its base path. This follows the [Vite guide for GitHub Pages with a custom domain](https://vite.dev/guide/static-deploy.html#github-pages).
+The app uses one shared CPU and 256 MB of memory. Like the [Pretiola deployment pattern](https://github.com/pretiola/www), it stops when idle and starts on demand. The first request after an idle period may take longer. There is no database, persistent volume, application secret, or server-side image processing. The original image, masks, WebGL treatment and accessibility preferences are unchanged.
 
-No deployment token needs to be stored in the repository. The workflow uses GitHub’s short-lived token, with read permission for building and Pages/OIDC permissions for deployment. DNS and the custom domain remain managed outside the application code. With the Actions publishing method, GitHub's repository Pages settings control the custom domain; the CNAME file is retained as the original domain record and is copied to the artifact for clarity.
+### GitHub Actions
 
-### Apex and www DNS
+`.github/workflows/deploy.yml` builds and checks the production container on pull requests and pushes to `main`. It verifies health, HTML delivery, artwork and JavaScript MIME types, caching, missing-file handling and the canonical www redirect. After these checks pass, pushes to `main` and manual workflow runs deploy through `flyctl deploy --remote-only --ha=false`.
 
-Both hostnames can reach the same site. Keep `mhri.net` as the custom domain in Pages settings and configure these records at the DNS provider:
+The sole required repository secret is **FLY_API_TOKEN**, an app-scoped deployment token for **mhri**. It cannot deploy the other Pretiola applications. The token configured during migration expires after one year; rotate it before September 2027. Do not place a personal Fly login token or secret value in this repository. No Pages/OIDC deployment permissions are needed.
 
-| Type | Host | Target |
-| --- | --- | --- |
-| A | `@` | `185.199.108.153` |
-| A | `@` | `185.199.109.153` |
-| A | `@` | `185.199.110.153` |
-| A | `@` | `185.199.111.153` |
-| CNAME | `www` | `headertag.github.io` |
+The Fly configuration and workflow are committed to the repository. To deploy manually after a successful build:
 
-The `www` CNAME must target `headertag.github.io` directly, rather than `mhri.net` or a repository URL. Do not add a second hostname to the repository CNAME file. GitHub can redirect `www.mhri.net` to the configured apex domain once DNS and its certificate are ready. [GitHub custom-domain documentation](https://docs.github.com/en/pages/configuring-a-custom-domain-for-your-github-pages-site/managing-a-custom-domain-for-your-github-pages-site#configuring-an-apex-domain-and-the-www-subdomain-variant)
+```bash
+flyctl deploy --remote-only --ha=false
+flyctl status --app mhri
+flyctl checks list --app mhri
+```
 
-A certificate-name error on `www` is a DNS/certificate provisioning issue, not a React routing problem. Domain and HTTPS changes can take up to 24 hours to become available; inspect the DNS check and certificate status in repository Pages settings if it persists. [GitHub domain and HTTPS guidance](https://docs.github.com/en/pages/configuring-a-custom-domain-for-your-github-pages-site/managing-a-custom-domain-for-your-github-pages-site)
+### GoDaddy DNS and certificate cutover
 
-If the custom domain is removed and the site is moved to `headertag.github.io/mhri/`, the root-relative artwork/font paths and Vite base must be adapted together; changing only the base is insufficient. The current build is intentionally configured for the preserved custom domain.
+Use the records in [docs/fly-dns.md](docs/fly-dns.md). For a staged cutover, first add the two ACME validation CNAME records, then confirm Fly has issued both certificates before replacing the traffic records. This lets the existing site remain in place during certificate validation. [Fly custom-domain documentation](https://fly.io/docs/networking/custom-domain/)
+
+The original **CNAME** file remains unchanged as the historical domain record. Fly does not read it; the domain bindings and certificates live in Fly. The GitHub Pages deployment workflow has been replaced, but the last Pages deployment is retained during DNS propagation. The old GitHub SSL polling automation has been paused.
+
+After the DNS change, verify both HTTPS hostnames, HTTP-to-HTTPS redirects, and the certificate status. The public site must resolve to Fly before retiring the old Pages deployment. Do not modify email-related MX, SPF, DKIM or DMARC records during this migration.
 
 ## Source map and maintenance
 
 ```text
-CNAME                         Existing custom domain; copied verbatim at build time
+CNAME                         Original domain record, preserved unchanged
 index.html                    Page metadata, canonical URL, favicon and entry point
 src/main.tsx                  Static React entry point
 src/page.tsx                  Homepage, About dialog, settings, copyright, wordmark filter
@@ -211,11 +210,15 @@ src/fonts.css                 Self-hosted font declarations
 src/components/ui/            Existing dialog, switch, slider and button primitives
 public/art/                   Original reproduction, extended plates and landscape mask
 public/fonts/                 Fonts and their SIL Open Font License notices
-scripts/prepare-pages.mjs      CNAME preservation and static output preparation
+Dockerfile                    Node build and unprivileged NGINX runtime
+nginx.conf                    Static delivery, cache rules, www redirect and health check
+fly.toml                      Fly app, region, HTTPS, machine size and health checks
+scripts/check-server.mjs       Production HTTP smoke checks
+docs/fly-dns.md                Exact GoDaddy records and certificate cutover steps
 .github/workflows/deploy.yml   Build and publish pipeline
 ```
 
-The GitHub Pages edition reuses the approved prototype’s artwork, masks, shaders, controls and styling. Its hosting wrapper is plain Vite/React rather than a server-rendered Sites/Cloudflare runtime. It has no dependency on the private UAT URL, Sites authentication, server functions or environment secrets.
+The Fly.io edition reuses the approved prototype’s artwork, masks, shaders, controls and styling. Its hosting wrapper is a Vite/React bundle served by an NGINX application container. It has no dependency on the private UAT URL, Sites authentication, server functions or runtime environment secrets.
 
 For changes, build locally and review the following before pushing:
 
@@ -227,7 +230,7 @@ For changes, build locally and review the following before pushing:
 - The About dialog opens, closes with Escape and can be operated by keyboard.
 - Reduced motion, Motion off, and the original-painting comparison work.
 - Neuromancer mode starts unchecked; its checkbox works by keyboard, toggles the effect cleanly, and honours Motion off and reduced motion.
-- MHRI is readable, the footer stays unobtrusive, and `dist/CNAME` matches `CNAME`.
+- MHRI is readable, the footer stays unobtrusive, and the original `CNAME` remains unchanged.
 
 Keep original artwork assets separate from interpretive extensions. Do not overwrite `le-bon-pasteur.png` with a generated or composited scene: the original view, texture sampling and research comparison all depend on it.
 
