@@ -66,7 +66,7 @@ The complete figure remains visible on both wide and narrow screens. Instead of 
 | Middle-distance landscape | `public/art/landscape-wide.png` plus `landscape-foreground-mask.svg` | The extended landscape fills the viewport; its sky is masked so cloud motion does not move the trees. |
 | Near landscape | The same landscape, revealed with a lower-edge mask | A small opposing parallax movement provides foreground depth. |
 | Golden aureole | A circular CSS radial gradient | Sits behind the head and responds at an intermediate parallax depth. |
-| Ground shadows | SVG gradients and a softened cast-shadow shape | Contact shade follows each foot. The cast shadow extends rightward, based on an above-left reading of the figure’s illumination. |
+| Ground shadow | Figure and crook silhouettes projected onto a Canvas 2D receiver | A single cast shadow stays anchored at the toe contacts, recedes back and right, and follows the moving cloth. |
 | Crook and painted halo | Independent SVG masks sampling the original reproduction | Preserve thin details without carrying blocks of the old background along with them. |
 | Christ and sheep | Original pixels on a WebGL mesh, with an SVG fallback | Keep the subject recognisable while allowing a small area of cloth to move. |
 | Interface | MHRI at upper left; copyright and About at the bottom | Offers identity and controls with minimal competition for the painting. |
@@ -78,7 +78,7 @@ The landscape and sky plates are **AI-generated interpretive extensions made for
 The painting already contains its own illumination. An HDRI normally supplies environment lighting to a rendered scene; applying one to this flat painted surface would not reconstruct the figure’s anatomy, material response or surface normals. This presentation instead borrows restrained techniques from image compositing. [Blender’s environment-lighting documentation](https://docs.blender.org/manual/en/latest/render/lights/world.html)
 
 - **Clean mattes:** the free mantle edge follows the painted cloth, excluding the old ground and leaves beneath it. The same silhouette drives the animated mesh and static fallback.
-- **Contact and cast shadows:** narrow, softened shadows follow the actual soles, inside the existing wider penumbra. The directional cast shadow continues to extend away from the painted light. Figure translation matches the near-ground layer, with gentler card rotation, to reduce the impression of sliding or floating.
+- **Figure-derived cast shadow:** the current figure and crook silhouettes are projected onto the ground. Its direction and perspective compression are fitted to the original painting: it travels back and right from the feet. The footprint is generated from the subject, with no independent sandal outlines or oval contact patches. Figure translation matches the near-ground layer, with gentler card rotation.
 - **Inner-edge light wrap:** the normal WebGL view samples a 64 × 32 colour reference made from the extended landscape. Its mapping follows the responsive cover crop and parallax. A soft band roughly three original-image pixels wide blends a small amount of the adjacent environment into the subject’s edge, without expanding the silhouette or changing its opacity. It produces no outward glow.
 - **Restrained colour bounce:** shaded lower folds receive a very small environmental colour adjustment. It is an artistic approximation, not physically based relighting; the face and bright areas receive no bounce adjustment.
 
@@ -91,6 +91,14 @@ The colour reference is an ordinary low-dynamic-range image, **not an HDRI map**
 A weighted vertex shader limits movement to the free left side of the blue mantle. Influence fades towards the body and before the feet and upper torso, keeping the face, hands, sheep and feet anchored. Small sinusoidal changes in position, shallow depth and shading create the impression of a breeze. This is deliberately restrained: broad distortion would make the painting feel elastic.
 
 The renderer caps pixel density at 2, responds to resizing, pauses when the tab is hidden, and releases GPU resources on cleanup. If WebGL is unavailable or its context is lost, the masked SVG figure remains visible. The crook is rendered separately rather than being distorted with the cloth.
+
+### Dynamic ground shadow
+
+`src/figure-shadow.ts` samples the existing silhouette curves, applies the same cloth displacement and perspective as the displayed figure, and projects the resulting contour onto a ground receiver inferred from the painted toe contacts. The crook contributes its own silhouette to that same shadow. The receiver compresses distance into a shallow receding ground band, matching the original shadow’s direction without letting a tall flattened figure climb up the background.
+
+Three overlapping height bands produce a tight edge near contact and a wider penumbra farther from the feet. Their masks are combined before applying shadow density, so overlapping limbs do not create multiple stacked dark outlines. The shadow retains the landscape texture through a multiply blend and fades at its far end. Its canvas extends beyond the portrait’s bounds to avoid clipping the cast on a wide screen.
+
+The shadow uses the mesh’s animation clock and updates at up to 30 frames per second. Motion off and reduced motion keep the cast static; **Show original painting** hides it. If WebGL is unavailable or lost, a resting silhouette still casts a shadow through Canvas 2D while the figure uses its SVG fallback. This is a projection fitted to the visible painting, not a recovered three-dimensional model or a measured historical light source.
 
 ### Parallax and clouds
 
@@ -194,7 +202,9 @@ index.html                    Page metadata, canonical URL, favicon and entry po
 src/main.tsx                  Static React entry point
 src/page.tsx                  Homepage, About dialog, settings, copyright, wordmark filter
 src/artwork.tsx               Scene layers, masks, shadows and parallax/cloud movement
-src/figure-mesh.tsx           WebGL grid, cloth shader, texture and fallback lifecycle
+src/figure-mesh.tsx           WebGL grid, texture, shared clock and fallback lifecycle
+src/figure-motion.ts         Cloth deformation for the visible mesh and shadow contour
+src/figure-shadow.ts         Figure-derived ground projection and graded penumbra
 src/roman-year.ts             Roman-numeral year formatting
 src/globals.css               Responsive composition and visual styling
 src/fonts.css                 Self-hosted font declarations
@@ -212,7 +222,7 @@ For changes, build locally and review the following before pushing:
 - The full figure, crook and feet fit desktop and mobile viewports.
 - The gap between crook and robe remains transparent; no sky fragments follow the halo or hairline.
 - Only the intended cloth region deforms; the face, sheep and feet stay stable.
-- Ground shadows remain attached beneath the feet while the scene moves.
+- The cast shadow remains anchored at the feet, extends back/right, and follows the cloth without detached sandal outlines. Motion off and WebGL fallback retain a static shadow.
 - Clouds drift behind the trees, and speed changes do not jump.
 - The About dialog opens, closes with Escape and can be operated by keyboard.
 - Reduced motion, Motion off, and the original-painting comparison work.

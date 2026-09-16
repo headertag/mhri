@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { FigureMesh } from './figure-mesh';
+import { SHADOW_BOUNDS } from './figure-shadow';
 
 // Display masks only. Every visible subject pixel comes from the supplied artwork.
 // Trace the wool, grip and tunic hem independently of the staff: the spaces
@@ -16,6 +17,7 @@ const halo = 'M 357 110 C 369 79 400 64 433 64 C 474 62 507 92 515 132 L 517 147
 export function Artwork({ motion, original, depth, focus, cloudSpeed, neuromancer, signalMotion }: {motion:boolean;original:boolean;depth:number;focus:boolean;cloudSpeed:number;neuromancer:boolean;signalMotion:boolean}) {
   const root = useRef<HTMLDivElement>(null);
   const environment = useRef<HTMLImageElement>(null);
+  const shadow = useRef<HTMLCanvasElement>(null);
   const target = useRef({x:0,y:0,last:0,active:false});
   const speed = useRef(cloudSpeed);
   const [meshReady,setMeshReady]=useState(false);
@@ -70,6 +72,10 @@ export function Artwork({ motion, original, depth, focus, cloudSpeed, neuromance
         <div className="halo-aureole" aria-hidden="true" />
         {neuromancer&&!original&&<div className="projection-pool" aria-hidden="true"/>}
         <img className="painting original-painting" src="/art/le-bon-pasteur.png" alt="Le Bon Pasteur: Christ wears a blue mantle and pink tunic, carries a sheep across his shoulders, and holds a staff in a wooded landscape." width="798" height="1260" fetchPriority="high" draggable="false" />
+        <canvas ref={shadow} className="figure-shadow" aria-hidden="true" style={{
+          left: `${SHADOW_BOUNDS.x / 798 * 100}%`, top: `${SHADOW_BOUNDS.y / 1260 * 100}%`,
+          width: `${SHADOW_BOUNDS.width / 798 * 100}%`, height: `${SHADOW_BOUNDS.height / 1260 * 100}%`,
+        }}/>
         <svg className="depth-scene" viewBox="0 0 798 1260" aria-hidden="true" focusable="false">
           <defs>
             <image id="original-art" href="/art/le-bon-pasteur.png" width="798" height="1260" preserveAspectRatio="none"/>
@@ -78,31 +84,14 @@ export function Artwork({ motion, original, depth, focus, cloudSpeed, neuromance
             <mask id="subject-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="798" height="1260" style={{maskType:'luminance'}}><use href="#subject-shape" fill="white" color="white" filter="url(#soft-mask)"/></mask>
             <mask id="staff-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="798" height="1260" style={{maskType:'luminance'}}><path d={staff} fill="white"/></mask>
             <mask id="halo-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="798" height="1260" style={{maskType:'luminance'}}><path d={halo} fill="none" stroke="white" strokeWidth="1.6" strokeLinecap="round"/></mask>
-            <radialGradient id="contact-shade"><stop stopColor="#171a12" stopOpacity=".62"/><stop offset=".45" stopColor="#252519" stopOpacity=".36"/><stop offset="1" stopColor="#302d1b" stopOpacity="0"/></radialGradient>
-            <linearGradient id="cast-shade" x1="270" y1="1160" x2="682" y2="1250" gradientUnits="userSpaceOnUse"><stop stopColor="#25271a" stopOpacity=".32"/><stop offset=".6" stopColor="#2b2b1b" stopOpacity=".19"/><stop offset="1" stopColor="#34301e" stopOpacity="0"/></linearGradient>
-            <filter id="sole-softness" x="-15%" y="-40%" width="130%" height="180%"><feGaussianBlur stdDeviation="1.8"/></filter>
-            <filter id="ground-softness" x="-20%" y="-70%" width="150%" height="240%"><feGaussianBlur stdDeviation="8 4"/></filter>
-
           </defs>
-          {/* The painted figure is lit from above-left. Its cast shadow falls
-              rightward across the ground; contact shade stays fixed to each sole. */}
-          <g className="ground-shadow">
-            <path d="M 199 1154 Q 230 1143 274 1149 Q 390 1166 510 1183 Q 615 1191 708 1239 Q 744 1272 646 1269 Q 545 1259 460 1222 Q 419 1207 386 1197 Q 286 1180 199 1154 Z" fill="url(#cast-shade)" filter="url(#ground-softness)"/>
-            <ellipse cx="238" cy="1158" rx="70" ry="15" fill="url(#contact-shade)" transform="rotate(-13 238 1158)"/>
-            <ellipse cx="449" cy="1216" rx="65" ry="17" fill="url(#contact-shade)" transform="rotate(16 449 1216)"/>
-            {/* Narrow occlusion at the actual sole contours, inside the wider penumbra. */}
-            <g fill="#202018" fillOpacity=".55" filter="url(#sole-softness)">
-              <path d="M 186 1151 Q 198 1159 220 1160 Q 248 1162 266 1145 L 283 1123 L 288 1130 Q 273 1153 248 1165 Q 220 1171 191 1160 Z"/>
-              <path d="M 396 1168 Q 403 1187 424 1199 L 453 1217 Q 478 1228 496 1212 L 501 1219 Q 478 1237 447 1227 L 417 1209 Q 396 1195 391 1176 Z"/>
-            </g>
-          </g>
           <g className="subject-plane">
             <use href="#original-art" mask="url(#halo-mask)" className="halo-detail"/>
             <use href="#original-art" mask="url(#staff-mask)"/>
             <use href="#original-art" mask="url(#subject-mask)" className="figure-detail"/>
           </g>
         </svg>
-        <FigureMesh environmentRef={environment} shape={figure} motion={motion&&!original} onReady={setMeshReady} neuromancer={neuromancer&&!original} signalMotion={signalMotion}/>
+        <FigureMesh shadowRef={shadow} staffShape={staff} environmentRef={environment} shape={figure} motion={motion&&!original} onReady={setMeshReady} neuromancer={neuromancer&&!original} signalMotion={signalMotion}/>
       </div>
       <figcaption className="sr-only">Le Bon Pasteur, Musée national de Port-Royal des Champs. The original painted figure appears over an extended landscape.</figcaption>
     </figure>
