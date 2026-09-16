@@ -28,9 +28,10 @@ export function Artwork({ motion, original, depth, focus, cloudSpeed, neuromance
     let raf=0, last=0, time=0, cloudTime=0, x=0, y=0;
     const set=(nx:number,ny:number)=>{el.style.setProperty('--px',nx.toFixed(4));el.style.setProperty('--py',ny.toFixed(4));};
     const clouds=(t:number)=>{
-      // Eight minutes at 1×. Integrating speed keeps slider changes continuous.
-      el.style.setProperty('--cloud-x',`${(Math.sin(t*Math.PI/240)*6).toFixed(4)}px`);
-      el.style.setProperty('--cloud-y',`${(Math.sin(t*Math.PI/300)*1.2).toFixed(4)}px`);
+      // Two minutes at 1×, thirty seconds at 4×, with enough travel to see it.
+      // Integrating speed keeps slider changes continuous instead of jumping.
+      el.style.setProperty('--cloud-x',`${(Math.sin(t*Math.PI/60)*30).toFixed(4)}px`);
+      el.style.setProperty('--cloud-y',`${(Math.sin(t*Math.PI/90)*3).toFixed(4)}px`);
     };
     if (!motion || original) {set(0,0);clouds(0);return;}
     function animate(now:number){

@@ -104,7 +104,7 @@ The shadow uses the mesh’s animation clock and updates at up to 30 frames per 
 
 Pointer movement, touch dragging and arrow keys steer the scene. Position changes are eased rather than applied abruptly, and a small idle drift prevents complete stillness when motion is enabled.
 
-At **1×**, horizontal cloud movement completes a cycle in eight minutes, with an amplitude of six CSS pixels; vertical motion has a different period and a smaller amplitude. The default is **1.5×**. The **Cloud speed** slider ranges from **0× to 4×** and integrates speed over time, so changing speed does not jump the clouds to a different position. Cloud motion is independent of the Depth slider and stops when Motion is off.
+At **1×**, horizontal cloud movement completes a cycle in two minutes, with an amplitude of 30 CSS pixels. At **4×**, the cycle takes 30 seconds, producing an obvious drift. Vertical motion has a different period and a smaller three-pixel amplitude. Extra sky overscan covers the increased travel without exposing empty edges. The default is **1.5×**. The **Cloud speed** slider ranges from **0× to 4×** and integrates speed over time, so changing speed does not jump the clouds to a different position. Cloud motion is independent of the Depth slider and stops when Motion is off.
 
 ## Lettering and the quiet interface
 
