@@ -31,8 +31,8 @@ export default function Home() {
   const [depth,setDepth]=useState(75);
   const [cloudSpeed,setCloudSpeed]=useState(1.5);
   const [focus,setFocus]=useState(true);
-  // An opt-in interpretation: every new visit starts with the painting.
-  const [neuromancer,setNeuromancer]=useState(false);
+  // Default presentation; visitors can turn it off in About the painting.
+  const [neuromancer,setNeuromancer]=useState(true);
   const [reduced,setReduced]=useState(false);
   const [ready,setReady]=useState(false);
   useEffect(()=>{

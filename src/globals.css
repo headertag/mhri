@@ -19,7 +19,7 @@
 @media(max-height:500px) and (min-width:701px){.art-frame{height:calc(100% - 24px);top:48%}.masthead{top:20px;left:23px}.wordmark span{font-size:32px}.viewer-footer{right:max(20px,env(safe-area-inset-right));bottom:max(9px,env(safe-area-inset-bottom))}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;animation-duration:0s!important;transition-duration:0s!important}.art-frame,.landscape-space,.near-landscape,.halo-aureole,.cloud-sky{will-change:auto}}
 
-/* Opt-in projection treatment. Interface text stays outside this scene layer. */
+/* Projection treatment. Interface text stays outside this scene layer. */
 .mode-checkbox{position:relative;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:44px;height:44px;margin:-11px -4px -11px 0;cursor:pointer;outline:none;}
 .mode-checkbox::before{content:"";position:absolute;width:21px;height:21px;border:1px solid #bba574;border-radius:3px;background:#121c17;}
 .mode-checkbox[data-checked]::before{background:#d1b777;border-color:#e5ce98;}

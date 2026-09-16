@@ -2,8 +2,10 @@ import { deformClothPoint, type FigurePoint } from './figure-motion.ts';
 
 // Receiver inferred from the painted toe contacts, in the 798 × 1260 artwork.
 // Light comes from upper left; the cast runs rightward and away into the scene.
-export const SHADOW_LIGHT = { groundY: 1114, groundSlope: .2, castX: .7, castY: -.79, depthFalloff: 145 };
-export const SHADOW_BOUNDS = { x: 80, y: 1000, width: 1600, height: 270 };
+export const SHADOW_LIGHT = { groundY: 1114, groundSlope: .2, castX: .7, castY: -.2, depthFalloff: 145 };
+// Fade completely on the near ground, with padding beyond the transparent edges.
+export const SHADOW_FADE = { startX: 510, endX: 760, backY: 1090, groundY: 1140 };
+export const SHADOW_BOUNDS = { x: 80, y: 1050, width: 740, height: 220 };
 export const SHADOW_BANDS = [
   { min: -Infinity, max: 115, blur: 1.25 },
   { min: 85, max: 440, blur: 3.5 },
@@ -114,12 +116,26 @@ export function createFigureShadow(canvas: HTMLCanvasElement, figure: string, st
     context.setTransform(1, 0, 0, 1, 0, 0);
     context.filter = 'none';
     context.globalCompositeOperation = 'source-in';
-    const density = context.createLinearGradient(0, 0, width, 0);
-    density.addColorStop(0, 'rgba(20,22,15,.64)');
-    density.addColorStop(.4, 'rgba(20,22,15,.58)');
-    density.addColorStop(.72, 'rgba(20,22,15,.36)');
-    density.addColorStop(1, 'rgba(20,22,15,.12)');
+    const density = context.createLinearGradient(
+      (SHADOW_FADE.startX - SHADOW_BOUNDS.x) * scaleX, 0,
+      (SHADOW_FADE.endX - SHADOW_BOUNDS.x) * scaleX, 0);
+    for (let i = 0; i <= 12; i++) {
+      const t = i / 12, fade = 1 - t * t * (3 - 2 * t);
+      density.addColorStop(t, `rgba(20,22,15,${.64 * fade})`);
+    }
     context.fillStyle = density;
+    context.fillRect(0, 0, width, height);
+    // Apply the finite receiver after blur, so no soft pixels spill onto the
+    // water/trees. Its back edge also eases to zero instead of cutting off.
+    context.globalCompositeOperation = 'destination-in';
+    const receiver = context.createLinearGradient(0,
+      (SHADOW_FADE.backY - SHADOW_BOUNDS.y) * scaleY, 0,
+      (SHADOW_FADE.groundY - SHADOW_BOUNDS.y) * scaleY);
+    for (let i = 0; i <= 12; i++) {
+      const t = i / 12, opacity = t * t * (3 - 2 * t);
+      receiver.addColorStop(t, `rgba(255,255,255,${opacity})`);
+    }
+    context.fillStyle = receiver;
     context.fillRect(0, 0, width, height);
     context.globalCompositeOperation = 'source-over';
   };

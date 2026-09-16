@@ -96,7 +96,7 @@ The renderer caps pixel density at 2, responds to resizing, pauses when the tab 
 
 `src/figure-shadow.ts` samples the existing silhouette curves, applies the same cloth displacement and perspective as the displayed figure, and projects the resulting contour onto a ground receiver inferred from the painted toe contacts. The crook contributes its own silhouette to that same shadow. The receiver compresses distance into a shallow receding ground band, matching the original shadow’s direction without letting a tall flattened figure climb up the background.
 
-Three overlapping height bands produce a tight edge near contact and a wider penumbra farther from the feet. Their masks are combined before applying shadow density, so overlapping limbs do not create multiple stacked dark outlines. The shadow retains the landscape texture through a multiply blend and fades at its far end. Its canvas extends beyond the portrait’s bounds to avoid clipping the cast on a wide screen.
+Three overlapping height bands produce a tight edge near contact and a wider penumbra farther from the feet. Their masks are combined before applying shadow density, so overlapping limbs do not create multiple stacked dark outlines. The cast is shallow, between 0° and approximately 16° above the rightward horizontal. It retains the landscape texture through a multiply blend, then fades smoothly to full transparency a short distance behind the figure. A second soft boundary limits its backward reach to the nearby ground. Both fades are applied after blur, preventing the penumbra from leaking into the water or distant trees; the toe contacts stay fixed.
 
 The shadow uses the mesh’s animation clock and updates at up to 30 frames per second. Motion off and reduced motion keep the cast static; **Show original painting** hides it. If WebGL is unavailable or lost, a resting silhouette still casts a shadow through Canvas 2D while the figure uses its SVG fallback. This is a projection fitted to the visible painting, not a recovered three-dimensional model or a measured historical light source.
 
@@ -127,7 +127,7 @@ Open **About the painting** at the bottom right to find:
 | Cloud speed | Changes cloud motion from still to 4×; default 1.5×. |
 | Atmospheric focus | Toggles the restrained blur on landscape layers. |
 | Show original painting | Shows the complete supplied portrait without the animated subject treatment; turns Neuromancer mode off. |
-| Neuromancer mode | An unchecked-by-default checkbox for an optional holographic interpretation. |
+| Neuromancer mode | Enabled by default; uncheck to return to the normal painting treatment. |
 
 The application respects the device’s `prefers-reduced-motion` setting at startup and stops motion if that preference changes to reduced motion. A viewer may also use the Motion control. Preferences are saved only in the browser’s `localStorage`, under `mhri-view`; they are not transmitted to a server.
 
@@ -137,11 +137,11 @@ The copyright year comes from the visitor’s current date and is converted to R
 
 ## Neuromancer mode
 
-An optional checkbox in **About the painting** gives the scene a retro holographic treatment: the original painting colours with red/blue channel separation, a slight cool tint, scan lines, grain, a travelling scan band and occasional local signal tears. The interface remains readable outside the effect layers.
+A checkbox in **About the painting**, enabled by default, gives the scene a retro holographic treatment: the original painting colours with red/blue channel separation, a slight cool tint, scan lines, grain, a travelling scan band and occasional local signal tears. The interface remains readable outside the effect layers.
 
 The figure effect is computed in the existing WebGL fragment shader using the same original texture and corrected silhouette. It samples the red and blue channels at small opposing offsets while keeping green aligned, rather than mapping the painting into a monochrome blue palette. It does not replace or rewrite any artwork assets. A short glitch window occurs once per eleven-second cycle and affects small horizontal regions instead of flashing the whole screen. The existing cloth mesh and parallax continue to work. The SVG fallback receives a restrained red/cyan edge treatment when WebGL is unavailable.
 
-The checkbox **starts unchecked on every page load** and is deliberately excluded from saved preferences. Checking it exits the original-painting comparison; selecting **Show original painting** unchecks it. Unchecking Neuromancer mode restores the normal painting treatment immediately.
+The checkbox **starts checked on every page load** and is deliberately excluded from saved preferences. Checking it exits the original-painting comparison; selecting **Show original painting** unchecks it. Unchecking Neuromancer mode restores the normal painting treatment immediately.
 
 **Motion off** freezes the signal animation while retaining the static holographic appearance. The mode also suppresses signal animation when the device requests reduced motion. Scan lines, tint and grain remain visible as static effects. All screen overlays ignore pointer input and are hidden from assistive technology.
 
@@ -226,7 +226,7 @@ For changes, build locally and review the following before pushing:
 - Clouds drift behind the trees, and speed changes do not jump.
 - The About dialog opens, closes with Escape and can be operated by keyboard.
 - Reduced motion, Motion off, and the original-painting comparison work.
-- Neuromancer mode starts unchecked; its checkbox works by keyboard, toggles the effect cleanly, and honours Motion off and reduced motion.
+- Neuromancer mode starts checked; its checkbox works by keyboard, toggles the effect cleanly, and honours Motion off and reduced motion.
 - MHRI is readable, the footer stays unobtrusive, and `dist/CNAME` matches `CNAME`.
 
 Keep original artwork assets separate from interpretive extensions. Do not overwrite `le-bon-pasteur.png` with a generated or composited scene: the original view, texture sampling and research comparison all depend on it.
