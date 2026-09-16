@@ -104,7 +104,7 @@ The shadow uses the mesh’s animation clock and updates at up to 30 frames per 
 
 Pointer movement, touch dragging and arrow keys steer the scene. Position changes are eased rather than applied abruptly, and a small idle drift prevents complete stillness when motion is enabled.
 
-At **1×**, horizontal cloud movement completes a cycle in two minutes, with an amplitude of 30 CSS pixels. At **4×**, the cycle takes 30 seconds, producing an obvious drift. Vertical motion has a different period and a smaller three-pixel amplitude. Extra sky overscan covers the increased travel without exposing empty edges. The default is **1.5×**. The **Cloud speed** slider ranges from **0× to 4×** and integrates speed over time, so changing speed does not jump the clouds to a different position. Cloud motion is independent of the Depth slider and stops when Motion is off.
+At **1×**, horizontal cloud movement completes a cycle in two minutes, with an amplitude of 30 CSS pixels. At **4×**, the cycle takes 30 seconds, producing an obvious drift. Vertical motion has a different period and a smaller three-pixel amplitude. Extra sky overscan covers the increased travel without exposing empty edges. The default is **3×**. The **Cloud speed** slider ranges from **0× to 4×** and integrates speed over time, so changing speed does not jump the clouds to a different position. Cloud motion is independent of the Depth slider and stops when Motion is off.
 
 ## Lettering and the quiet interface
 
@@ -124,12 +124,12 @@ Open **About the painting** at the bottom right to find:
 | --- | --- |
 | Motion | Enables or stops automatic movement, parallax and cloth animation. |
 | Depth | Adjusts parallax intensity from 0–100%; default 75%. |
-| Cloud speed | Changes cloud motion from still to 4×; default 1.5×. |
+| Cloud speed | Changes cloud motion from still to 4×; default 3×. |
 | Atmospheric focus | Toggles the restrained blur on landscape layers. |
 | Show original painting | Shows the complete supplied portrait without the animated subject treatment; turns Neuromancer mode off. |
-| Neuromancer mode | Enabled by default; uncheck to return to the normal painting treatment. |
+| Neuromancer mode | Off by default; check to enable the holographic treatment. |
 
-The application respects the device’s `prefers-reduced-motion` setting at startup and stops motion if that preference changes to reduced motion. A viewer may also use the Motion control. Preferences are saved only in the browser’s `localStorage`, under `mhri-view`; they are not transmitted to a server.
+The application respects the device’s `prefers-reduced-motion` setting at startup and stops motion if that preference changes to reduced motion. A viewer may also use the Motion control. Preferences are saved only in the browser’s `localStorage`, under `mhri-view`; they are not transmitted to a server. The 3× cloud-speed default is applied once to older saved settings; subsequent speed adjustments are remembered, and other preferences are preserved.
 
 The dialog uses Base UI primitives with keyboard focus management, accessible names and switches. The artwork region supports arrow keys; links and buttons have visible focus states. A static portrait is supplied for visitors without JavaScript. No formal WCAG conformance audit is claimed.
 
@@ -137,11 +137,11 @@ The copyright year comes from the visitor’s current date and is converted to R
 
 ## Neuromancer mode
 
-A checkbox in **About the painting**, enabled by default, gives the scene a retro holographic treatment: the original painting colours with red/blue channel separation, a slight cool tint, scan lines, grain, a travelling scan band and occasional local signal tears. The interface remains readable outside the effect layers.
+A checkbox in **About the painting**, off by default, gives the scene a retro holographic treatment: the original painting colours with red/blue channel separation, a slight cool tint, scan lines, grain, a travelling scan band and occasional local signal tears. The interface remains readable outside the effect layers.
 
 The figure effect is computed in the existing WebGL fragment shader using the same original texture and corrected silhouette. It samples the red and blue channels at small opposing offsets while keeping green aligned, rather than mapping the painting into a monochrome blue palette. It does not replace or rewrite any artwork assets. A short glitch window occurs once per eleven-second cycle and affects small horizontal regions instead of flashing the whole screen. The existing cloth mesh and parallax continue to work. The SVG fallback receives a restrained red/cyan edge treatment when WebGL is unavailable.
 
-The checkbox **starts checked on every page load** and is deliberately excluded from saved preferences. Checking it exits the original-painting comparison; selecting **Show original painting** unchecks it. Unchecking Neuromancer mode restores the normal painting treatment immediately.
+The checkbox **starts unchecked on every page load** and is deliberately excluded from saved preferences. Checking it exits the original-painting comparison; selecting **Show original painting** unchecks it. Unchecking Neuromancer mode restores the normal painting treatment immediately.
 
 **Motion off** freezes the signal animation while retaining the static holographic appearance. The mode also suppresses signal animation when the device requests reduced motion. Scan lines, tint and grain remain visible as static effects. All screen overlays ignore pointer input and are hidden from assistive technology.
 
@@ -226,7 +226,7 @@ For changes, build locally and review the following before pushing:
 - Clouds drift behind the trees, and speed changes do not jump.
 - The About dialog opens, closes with Escape and can be operated by keyboard.
 - Reduced motion, Motion off, and the original-painting comparison work.
-- Neuromancer mode starts checked; its checkbox works by keyboard, toggles the effect cleanly, and honours Motion off and reduced motion.
+- Neuromancer mode starts unchecked; its checkbox works by keyboard, toggles the effect cleanly, and honours Motion off and reduced motion.
 - MHRI is readable, the footer stays unobtrusive, and `dist/CNAME` matches `CNAME`.
 
 Keep original artwork assets separate from interpretive extensions. Do not overwrite `le-bon-pasteur.png` with a generated or composited scene: the original view, texture sampling and research comparison all depend on it.

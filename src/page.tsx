@@ -8,6 +8,8 @@ import { Slider } from '@/components/ui/slider';
 import { Artwork } from './artwork';
 import { toRomanYear } from './roman-year';
 
+const DEFAULT_CLOUD_SPEED = 3;
+
 function Copyright() {
   const [year, setYear] = useState(() => new Date().getFullYear());
   useEffect(() => {
@@ -29,26 +31,27 @@ export default function Home() {
   const [motion,setMotion]=useState(false);
   const [original,setOriginal]=useState(false);
   const [depth,setDepth]=useState(75);
-  const [cloudSpeed,setCloudSpeed]=useState(1.5);
+  const [cloudSpeed,setCloudSpeed]=useState(DEFAULT_CLOUD_SPEED);
   const [focus,setFocus]=useState(true);
-  // Default presentation; visitors can turn it off in About the painting.
-  const [neuromancer,setNeuromancer]=useState(true);
+  // Start with the painting; visitors can enable the effect in About the painting.
+  const [neuromancer,setNeuromancer]=useState(false);
   const [reduced,setReduced]=useState(false);
   const [ready,setReady]=useState(false);
   useEffect(()=>{
     const mq=matchMedia('(prefers-reduced-motion: reduce)');
-    let saved:{motion?:boolean;depth?:number;focus?:boolean;cloudSpeed?:number}={};
+    let saved:{motion?:boolean;depth?:number;focus?:boolean;cloudSpeed?:number;cloudSpeedDefault?:number}={};
     try{saved=JSON.parse(localStorage.getItem('mhri-view')||'{}')||{};}catch{}
     setReduced(mq.matches);setMotion(!mq.matches&&saved.motion!==false);
     if(typeof saved.depth==='number')setDepth(Math.max(0,Math.min(100,saved.depth)));
     if(typeof saved.focus==='boolean')setFocus(saved.focus);
-    if(typeof saved.cloudSpeed==='number'&&Number.isFinite(saved.cloudSpeed))setCloudSpeed(Math.max(0,Math.min(4,saved.cloudSpeed)));
+    // Apply the new baseline once, then keep remembering the visitor's adjustments.
+    if(saved.cloudSpeedDefault===DEFAULT_CLOUD_SPEED&&typeof saved.cloudSpeed==='number'&&Number.isFinite(saved.cloudSpeed))setCloudSpeed(Math.max(0,Math.min(4,saved.cloudSpeed)));
     setReady(true);
     const preference=()=>{setReduced(mq.matches);if(mq.matches)setMotion(false);};
     mq.addEventListener('change',preference);
     return()=>mq.removeEventListener('change',preference);
   },[]);
-  useEffect(()=>{if(ready)try{localStorage.setItem('mhri-view',JSON.stringify({motion,depth,focus,cloudSpeed}));}catch{}},[motion,depth,focus,cloudSpeed,ready]);
+  useEffect(()=>{if(ready)try{localStorage.setItem('mhri-view',JSON.stringify({motion,depth,focus,cloudSpeed,cloudSpeedDefault:DEFAULT_CLOUD_SPEED}));}catch{}},[motion,depth,focus,cloudSpeed,ready]);
   return <main className="sanctuary">
     <h1 className="sr-only">MHRI — Magnifica Humanitas Redemptoris Iesu</h1>
     <svg className="wordmark-effects" width="0" height="0" aria-hidden="true" focusable="false">
