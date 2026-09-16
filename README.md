@@ -71,7 +71,18 @@ The complete figure remains visible on both wide and narrow screens. Instead of 
 | Christ and sheep | Original pixels on a WebGL mesh, with an SVG fallback | Keep the subject recognisable while allowing a small area of cloth to move. |
 | Interface | MHRI at upper left; copyright and About at the bottom | Offers identity and controls with minimal competition for the painting. |
 
-The landscape and sky plates are **AI-generated interpretive extensions made for this project**. They do not reveal missing parts of the historical canvas. The additional glow, ground shadows, parallax, depth blur and cloth movement are also modern interventions. The subject’s texture comes from the supplied painting; its silhouette masks and display geometry are project work.
+The landscape and sky plates are **AI-generated interpretive extensions made for this project**. They do not reveal missing parts of the historical canvas. The additional glow, ground shadows, parallax, depth blur, environmental colour integration and cloth movement are also modern interventions. The subject’s texture comes from the supplied painting; its silhouette masks and display geometry are project work.
+
+### Compositing the figure into the landscape
+
+The painting already contains its own illumination. An HDRI normally supplies environment lighting to a rendered scene; applying one to this flat painted surface would not reconstruct the figure’s anatomy, material response or surface normals. This presentation instead borrows restrained techniques from image compositing. [Blender’s environment-lighting documentation](https://docs.blender.org/manual/en/latest/render/lights/world.html)
+
+- **Clean mattes:** the free mantle edge follows the painted cloth, excluding the old ground and leaves beneath it. The same silhouette drives the animated mesh and static fallback.
+- **Contact and cast shadows:** narrow, softened shadows follow the actual soles, inside the existing wider penumbra. The directional cast shadow continues to extend away from the painted light. Figure translation matches the near-ground layer, with gentler card rotation, to reduce the impression of sliding or floating.
+- **Inner-edge light wrap:** the normal WebGL view samples a 64 × 32 colour reference made from the extended landscape. Its mapping follows the responsive cover crop and parallax. A soft band roughly three original-image pixels wide blends a small amount of the adjacent environment into the subject’s edge, without expanding the silhouette or changing its opacity. It produces no outward glow.
+- **Restrained colour bounce:** shaded lower folds receive a very small environmental colour adjustment. It is an artistic approximation, not physically based relighting; the face and bright areas receive no bounce adjustment.
+
+The colour reference is an ordinary low-dynamic-range image, **not an HDRI map**. It does not simulate reflections or recover missing geometry. The source reproduction is unchanged, and **Show original painting** bypasses all these interventions. Neuromancer keeps its separate RGB treatment. If WebGL or the landscape colour reference is unavailable, the normal painted colours remain available; the corrected silhouette and ground shadows do not depend on the colour-integration pass. The small edge texture is prepared once, and the additional GPU textures are released with the renderer.
 
 ### Fabric mesh
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type RefObject } from 'react';
 
 const vertexShader = `
   precision highp float;
@@ -32,6 +32,10 @@ const vertexShader = `
 const fragmentShader = `
   precision highp float;
   uniform sampler2D uPainting;
+  uniform sampler2D uLightWrap;
+  uniform sampler2D uEnvironment;
+  uniform vec4 uEnvironmentFrame;
+  uniform float uEnvironmentReady;
   uniform float uTime;
   uniform float uHologram;
   uniform float uSignalMotion;
@@ -40,9 +44,28 @@ const fragmentShader = `
   float noise(vec2 p) {
     return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
   }
+  vec4 integratePainting(vec4 painted) {
+    if (painted.a < 0.001 || uEnvironmentReady < 0.5) return painted;
+    // The blurred LDR landscape is a compositing reference, not an HDRI or
+    // a replacement for the illumination already present in the painting.
+    vec3 environment = texture2D(uEnvironment, uEnvironmentFrame.xy + vUV * uEnvironmentFrame.zw).rgb;
+    vec3 colour = painted.rgb / painted.a;
+    float environmentLuma = dot(environment, vec3(0.2126, 0.7152, 0.0722));
+    float paintedLuma = dot(colour, vec3(0.2126, 0.7152, 0.0722));
+    float edge = texture2D(uLightWrap, vUV).a;
+    float wrap = edge * mix(0.035, 0.15, smoothstep(0.12, 0.65, environmentLuma));
+    colour = mix(colour, environment, wrap);
+    // Very slight environmental colour in the shaded lower folds. The face,
+    // highlights and original silhouette/opacity are unaffected by this pass.
+    float bounce = smoothstep(0.45, 0.8, vUV.y) * (1.0 - smoothstep(0.18, 0.5, paintedLuma)) * 0.035;
+    vec3 tint = clamp(environment / max(environmentLuma, 0.08), vec3(0.8), vec3(1.2));
+    colour *= mix(vec3(1.0), tint, bounce);
+    return vec4(clamp(colour, 0.0, 1.0) * painted.a, painted.a);
+  }
   void main() {
     vec4 painted = texture2D(uPainting, vUV);
     if (uHologram < 0.5) {
+      painted = integratePainting(painted);
       gl_FragColor = vec4(painted.rgb * vLight, painted.a);
       return;
     }
@@ -74,12 +97,13 @@ const fragmentShader = `
 type Renderer = { redraw: () => void };
 
 /** Original painted pixels on a connected 64 × 100 grid of triangles. */
-export function FigureMesh({ shape, motion, onReady, neuromancer, signalMotion }: {
+export function FigureMesh({ shape, motion, onReady, neuromancer, signalMotion, environmentRef }: {
   shape: string;
   motion: boolean;
   onReady: (ready: boolean) => void;
   neuromancer: boolean;
   signalMotion: boolean;
+  environmentRef: RefObject<HTMLImageElement | null>;
 }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const renderer = useRef<Renderer | null>(null);
@@ -126,6 +150,7 @@ export function FigureMesh({ shape, motion, onReady, neuromancer, signalMotion }
     surface.addEventListener('webglcontextlost', contextLost);
     surface.addEventListener('webglcontextrestored', contextRestored);
     document.addEventListener('visibilitychange', restart);
+    window.addEventListener('resize', restart);
 
     async function initialize() {
       const gl = surface!.getContext('webgl', { alpha: true, antialias: true, premultipliedAlpha: true });
@@ -192,17 +217,50 @@ export function FigureMesh({ shape, motion, onReady, neuromancer, signalMotion }
       textureContext.globalCompositeOperation = 'destination-in';
       textureContext.drawImage(mask, 0, 0);
 
-      const texture = gl.createTexture()!;
-      cleanups.push(() => gl.deleteTexture(texture));
-      gl.activeTexture(gl.TEXTURE0);
-      gl.bindTexture(gl.TEXTURE_2D, texture);
-      gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, cutout);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      // Prepare the narrow inner-edge band once. It deforms with the cloth,
+      // never expands the silhouette and adds no coloured halo outside it.
+      const lightWrap = document.createElement('canvas');
+      lightWrap.width = 798; lightWrap.height = 1260;
+      const wrapContext = lightWrap.getContext('2d')!;
+      wrapContext.strokeStyle = 'white';
+      wrapContext.lineWidth = 5;
+      wrapContext.filter = 'blur(1.1px)';
+      wrapContext.stroke(new Path2D(shape));
+      wrapContext.filter = 'none';
+      wrapContext.globalCompositeOperation = 'destination-in';
+      wrapContext.drawImage(mask, 0, 0);
+
+      const environment = environmentRef.current;
+      let environmentReady = false;
+      if (environment) {
+        try { await environment.decode(); environmentReady = true; } catch { /* Preserve the painted colours if the plate is unavailable. */ }
+      }
+      if (disposed) return;
+      const environmentPlate = document.createElement('canvas');
+      environmentPlate.width = 64;
+      environmentPlate.height = 32;
+      const environmentContext = environmentPlate.getContext('2d')!;
+      if (environmentReady && environment) environmentContext.drawImage(environment, 0, 0, 64, 32);
+      const upload = (source: HTMLCanvasElement, unit: number) => {
+        const texture = gl.createTexture()!;
+        cleanups.push(() => gl.deleteTexture(texture));
+        gl.activeTexture(gl.TEXTURE0 + unit);
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      };
+      upload(cutout, 0);
+      upload(lightWrap, 1);
+      upload(environmentPlate, 2);
       gl.uniform1i(gl.getUniformLocation(program, 'uPainting'), 0);
+      gl.uniform1i(gl.getUniformLocation(program, 'uLightWrap'), 1);
+      gl.uniform1i(gl.getUniformLocation(program, 'uEnvironment'), 2);
+      gl.uniform1f(gl.getUniformLocation(program, 'uEnvironmentReady'), environmentReady ? 1 : 0);
+      const environmentFrameUniform = gl.getUniformLocation(program, 'uEnvironmentFrame');
       const timeUniform = gl.getUniformLocation(program, 'uTime');
       const motionUniform = gl.getUniformLocation(program, 'uMotion');
       const hologramUniform = gl.getUniformLocation(program, 'uHologram');
@@ -211,6 +269,18 @@ export function FigureMesh({ shape, motion, onReady, neuromancer, signalMotion }
       gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
       gl.clearColor(0, 0, 0, 0);
       draw = () => {
+        if (environmentReady && environment) {
+          // Match the actual cover crop at every viewport size and follow the
+          // existing parallax rather than baking desktop coordinates into UVs.
+          const subject = surface!.getBoundingClientRect();
+          const plate = environment.getBoundingClientRect();
+          const cover = Math.max(plate.width / environment.naturalWidth, plate.height / environment.naturalHeight);
+          const width = environment.naturalWidth * cover, height = environment.naturalHeight * cover;
+          gl.uniform4f(environmentFrameUniform,
+            (subject.left - plate.left + (width - plate.width) / 2) / width,
+            (subject.top - plate.top + (height - plate.height) / 2) / height,
+            subject.width / width, subject.height / height);
+        }
         gl.clear(gl.COLOR_BUFFER_BIT);
         gl.uniform1f(timeUniform, elapsed);
         gl.uniform1f(motionUniform, motionState.current ? 1 : 0);
@@ -241,9 +311,10 @@ export function FigureMesh({ shape, motion, onReady, neuromancer, signalMotion }
       surface.removeEventListener('webglcontextlost', contextLost);
       surface.removeEventListener('webglcontextrestored', contextRestored);
       document.removeEventListener('visibilitychange', restart);
+      window.removeEventListener('resize', restart);
       cleanups.forEach(cleanup => cleanup());
     };
-  }, [shape, onReady, contextVersion]);
+  }, [shape, onReady, contextVersion, environmentRef]);
 
   return <canvas ref={canvas} className="figure-mesh" aria-hidden="true" data-triangles="12800" />;
 }
