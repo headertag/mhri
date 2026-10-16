@@ -19,6 +19,42 @@
       "sha256": "b94a5ad90a28329547413685cb3945363b7a74e4a9fc927b38e4bd053d1d9799"
     },
     {
+      "id": "clouds-isolated",
+      "src": "/art/environments/clouds-isolated.webp",
+      "width": 1774,
+      "height": 887,
+      "bytes": 308230,
+      "sha256": "dfed85fee4c984a75127fb654d3a4054a3e6125f5b8857bb68354d4c09bb7a3b",
+      "alpha": {
+        "hasAlpha": true,
+        "min": 0,
+        "max": 255,
+        "transparentPixels": 471306,
+        "partialPixels": 1102227,
+        "opaquePixels": 5,
+        "transparentPercent": 29.952,
+        "partialPercent": 70.048
+      }
+    },
+    {
+      "id": "clouds-overcast",
+      "src": "/art/environments/clouds-overcast.webp",
+      "width": 1774,
+      "height": 887,
+      "bytes": 175758,
+      "sha256": "bfdfb538ed693f152b9ed80dfad6d6a0095f20015cca08b875ec20d8161cd243",
+      "alpha": {
+        "hasAlpha": false,
+        "min": 255,
+        "max": 255,
+        "transparentPixels": 0,
+        "partialPixels": 0,
+        "opaquePixels": 1573538,
+        "transparentPercent": 0,
+        "partialPercent": 0
+      }
+    },
+    {
       "id": "dawn",
       "src": "/art/environments/dawn.webp",
       "width": 1774,

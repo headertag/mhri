@@ -87,6 +87,14 @@ Modifications consist of lossless conversion from categorical GeoTIFF to a compr
 
 The full retained attribution and modification notice is [server/data/CLIMATE-ATTRIBUTION.md](server/data/CLIMATE-ATTRIBUTION.md). [docs/climate-data.md](docs/climate-data.md) records source archive/member identifiers, hashes, grid geometry, lookup limits and reproducible preparation instructions.
 
+## NASA lunar surface imagery
+
+`public/art/moon-albedo.webp` derives from the 2025 color map in the [NASA Scientific Visualization Studio CGI Moon Kit, SVS 4720](https://svs.gsfc.nasa.gov/4720/). Credit: **NASA's Scientific Visualization Studio**; visualization by Ernie Wright (USRA), using LROC and LOLA measurements. The derivative changes only size and format. The application adds sphere projection, phase shading and transparency; it is not a NASA photograph of the visitor's current lunar phase.
+
+NASA's [Images and Media Usage Guidelines](https://www.nasa.gov/nasa-brand-center/images-and-media/) permit informational and graphical-simulation use with acknowledgment; NASA texture maps generally are not subject to US copyright. No separate third-party restriction is identified for this selected map. The project's copyright notice does not claim exclusive rights to NASA material or imply NASA endorsement. [Full source, rights, preparation and hashes](docs/moon-imagery.md).
+
 ## Art
 
 See the artwork, attribution, digital-extension and rights sections in [README.md](README.md). The historic work, the supplied reproduction, and modern generated landscape plates are identified separately.
+
+The moving cloud materials are generated project artwork without baked sky color, stars or moon. The solar sky gradient and fixed transparent SVG star field are application-generated; the stars are decorative, not a licensed astronomical catalogue or a scientific sky chart.

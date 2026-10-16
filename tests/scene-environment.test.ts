@@ -9,12 +9,16 @@ const date = new Date('2026-10-16T04:00:00Z');
 const auto = {time:'auto',weather:'auto',season:'auto'};
 const make = (lat=43.7, lon=-79.4, timeZone='America/Toronto'): Environment => ({version:1,status:'live',location:{latitude:lat,longitude:lon,timeZone,city:'Test city',countryCode:'CA',approximate:true},weather:{observedAt:date.toISOString(),temperatureC:10,weatherCode:0,cloudCover:0,precipitationMm:0,rainMm:0,snowfallCm:0,windSpeedKmh:0,windDirectionDeg:0,isDay:false},sun:null,fetchedAt:date.toISOString()});
 
-test('overcast nights have neither a visible moon nor a baked star field', () => {
+test('overcast nights hide the moon and stars without recoloring the underlying sky', () => {
   const scene = resolveScene(true,make(),date,{time:'night',weather:'overcast',season:'summer'});
-  assert.match(scene.skyImage,/overcast-sky/);
+  const clear = resolveScene(true,make(),date,{time:'night',weather:'clear',season:'summer'});
+  assert.match(scene.cloudImage,/clouds-overcast.webp/);
+  assert.equal(scene.atmosphere.fullOvercast,true);
+  assert.equal(scene.atmosphere.starOpacity,0);
+  assert.equal(scene.atmosphere.skyGradient,clear.atmosphere.skyGradient);
   assert.doesNotMatch(scene.landscape,/night/);
   assert.equal(scene.moonOpacity,0);
-  assert.match(scene.skyFilter,/brightness/);
+  assert.match(scene.atmosphere.cloudFilter,/brightness/);
 });
 test('winter does not invent snow and precipitation remains independent of season', () => {
   const winter = resolveScene(true,make(),date,{time:'day',weather:'clear',season:'winter'});
@@ -62,7 +66,11 @@ test('all supported combinations resolve to available assets and finite visibili
   for (const time of ['dawn','day','dusk','night']) for (const weather of ['clear','cloudy','overcast','rain','snow','fog','thunderstorm']) for (const season of ['spring','summer','autumn','winter']) for (const ground of ['auto','bare','patchy','covered']) {
     const scene=resolveScene(true,make(),date,{time,weather,season,ground});
     assert.ok(existsSync(new URL(`../public${scene.landscape}`,import.meta.url)),scene.landscape);
-    assert.ok(existsSync(new URL(`../public${scene.skyImage}`,import.meta.url)),scene.skyImage);
+    assert.ok(existsSync(new URL(`../public${scene.cloudImage}`,import.meta.url)),scene.cloudImage);
+    assert.ok(existsSync(new URL(`../public${scene.landscapeMask}`,import.meta.url)),scene.landscapeMask);
+    assert.ok(Number.isFinite(scene.atmosphere.cloudOpacity)&&scene.atmosphere.cloudOpacity>=0&&scene.atmosphere.cloudOpacity<=1);
+    assert.ok(Number.isFinite(scene.atmosphere.starOpacity)&&scene.atmosphere.starOpacity>=0&&scene.atmosphere.starOpacity<=1);
+    assert.doesNotMatch(scene.atmosphere.skyGradient+scene.atmosphere.cloudFilter,/NaN|Infinity|undefined/);
     assert.ok(scene.moonOpacity>=0&&scene.moonOpacity<=1);
     assert.ok(!scene.landscapeFilter.includes('NaN'));
   }
@@ -70,7 +78,7 @@ test('all supported combinations resolve to available assets and finite visibili
 test('disabling local conditions restores the established painting environment', () => {
   const scene=resolveScene(false,make(),date,{time:'night',weather:'snow',season:'winter'});
   assert.equal(scene.landscape,'/art/landscape-wide.png');
-  assert.equal(scene.skyImage,'/art/cloud-sky.png');
+  assert.equal(scene.enabled,false);
   assert.equal(scene.moonOpacity,0); assert.equal(scene.figureFilter,'none');
 });
 
@@ -123,9 +131,11 @@ test('settled snow selects ground artwork without inventing flakes or overcast s
   const scene=resolveScene(true,env,date,auto);
   assert.equal(scene.ground.state,'covered');assert.equal(scene.ground.source,'modeled-depth');
   assert.equal(scene.weather.precipitation,'none');assert.equal(scene.weather.cloudCover,0);
-  assert.match(scene.landscape,/snow.webp/);assert.doesNotMatch(scene.skyImage,/overcast/);
+  assert.match(scene.landscape,/snow.webp/);assert.match(scene.cloudImage,/clouds-isolated.webp/);
+  assert.equal(scene.atmosphere.fullOvercast,false);
   const night=resolveScene(true,env,date,{...auto,time:'night'});
-  assert.match(night.landscape,/snow.webp/);assert.match(night.skyImage,/night-sky/);
+  assert.match(night.landscape,/snow.webp/);assert.match(night.cloudImage,/clouds-isolated.webp/);
+  assert.equal(night.atmosphere.starOpacity,1);
   assert.match(night.landscapeFilter,/brightness/);
 });
 
@@ -172,4 +182,118 @@ test('new current observations never inherit old snow depth and stale pack is no
   assert.equal(resolveScene(true,mergeEnvironment(previous,incoming),date,auto).ground.state,'unknown');
   const stale=resolveScene(true,previous,new Date(date.getTime()+4*3600000),auto);
   assert.equal(stale.ground.state,'unknown');assert.doesNotMatch(stale.landscape,/snow/);
+});
+
+test('time controls sky color while independent clouds control star visibility and cloud shape', () => {
+  const environment=make();
+  const clear=resolveScene(true,environment,date,{...auto,time:'night'});
+  assert.equal(clear.cloudImage,'/art/environments/clouds-isolated.webp');
+  assert.equal(clear.atmosphere.cloudOpacity,0);
+  assert.equal(clear.atmosphere.starOpacity,1);
+  environment.weather!.cloudCover=60;
+  const cloudy=resolveScene(true,environment,date,{...auto,time:'night'});
+  assert.equal(cloudy.atmosphere.skyGradient,clear.atmosphere.skyGradient);
+  assert.equal(cloudy.cloudImage,clear.cloudImage);
+  assert.ok(cloudy.atmosphere.cloudOpacity>clear.atmosphere.cloudOpacity&&cloudy.atmosphere.cloudOpacity<=1);
+  assert.ok(cloudy.atmosphere.starOpacity>0&&cloudy.atmosphere.starOpacity<clear.atmosphere.starOpacity);
+  for (const time of ['dawn','day','dusk']) {
+    const daytime=resolveScene(true,environment,date,{...auto,time});
+    assert.equal(daytime.atmosphere.starOpacity,0);
+    assert.notEqual(daytime.atmosphere.skyGradient,clear.atmosphere.skyGradient);
+    assert.equal(daytime.cloudImage,clear.cloudImage);
+  }
+  for (const weather of ['overcast','rain','snow','fog','thunderstorm']) {
+    const obscured=resolveScene(true,environment,date,{...auto,time:'night',weather});
+    assert.equal(obscured.atmosphere.fullOvercast,true);
+    assert.equal(obscured.atmosphere.starOpacity,0);
+    assert.equal(obscured.atmosphere.skyGradient,clear.atmosphere.skyGradient);
+    assert.equal(obscured.cloudImage,'/art/environments/clouds-overcast.webp');
+  }
+});
+
+test('Salvador has a visible real moon during a clear October evening without a night preview', () => {
+  const evening=new Date('2026-10-16T21:45:00Z');
+  const environment=make(-13,-38.5,'America/Bahia');
+  environment.location!.city='Salvador';environment.location!.countryCode='BR';
+  environment.fetchedAt=evening.toISOString();
+  environment.weather={...environment.weather!,observedAt:evening.toISOString(),cloudCover:4,temperatureC:26.8};
+  const scene=resolveScene(true,environment,evening,auto);
+  assert.equal(scene.preview,false);
+  assert.equal(scene.period,'night');
+  assert.equal(scene.weather.kind,'clear');
+  assert.equal(scene.moonOpacity,1);
+  assert.equal(scene.sky?.moonAboveHorizon,true);
+  assert.ok(scene.sky!.moonAltitude>45&&scene.sky!.moonAltitude<55);
+  assert.ok(scene.sky!.illumination>.32&&scene.sky!.illumination<.35);
+  assert.ok(scene.sky!.phase>.18&&scene.sky!.phase<.21);
+  assert.equal(scene.sky!.waxing,true);
+  assert.equal(scene.cloudImage,'/art/environments/clouds-isolated.webp');
+  assert.ok(scene.atmosphere.starOpacity>.99&&scene.atmosphere.starOpacity<=1);
+});
+
+test('automatic daylight changes illuminate one foliage plate instead of swapping prelit landscapes', () => {
+  const environment=make();environment.climate=getClimate(43.7,-79.4);
+  const scenes=[8,10,11,12,13,16,21,22,23].map(hour => {
+    const now=new Date(`2026-10-16T${String(hour).padStart(2,'0')}:00:00Z`);
+    // Hold the observed conditions fixed while advancing only the astronomical clock.
+    const observation={...environment,weather:{...environment.weather!,observedAt:now.toISOString()}};
+    return resolveScene(true,observation,now,auto);
+  });
+  assert.deepEqual(new Set(scenes.map(scene=>scene.period)),new Set(['night','dawn','day','dusk']));
+  assert.equal(new Set(scenes.map(scene=>scene.landscape)).size,1);
+  assert.equal(scenes[0].landscape,'/art/environments/autumn.webp');
+  assert.ok(scenes.every(scene=>!scene.preview&&scene.foliage.state==='autumn'&&scene.weather.kind==='clear'));
+  const brightness=(filter:string)=>Number(filter.match(/brightness\(([^)]+)\)/)![1]);
+  // Several distinct values within morning twilight catch period-based step lighting.
+  for(let i=1;i<=4;i++) {
+    assert.ok(brightness(scenes[i].landscapeFilter)>brightness(scenes[i-1].landscapeFilter));
+    assert.ok(brightness(scenes[i].figureFilter)>brightness(scenes[i-1].figureFilter));
+    assert.ok(scenes[i].atmosphere.shadowStrength>scenes[i-1].atmosphere.shadowStrength);
+  }
+  assert.equal(brightness(scenes[0].landscapeFilter),.39);
+  assert.equal(brightness(scenes[0].figureFilter),.62);
+  assert.equal(brightness(scenes[4].landscapeFilter),1);
+  assert.equal(brightness(scenes[4].figureFilter),1);
+});
+
+test('automatic sunrise and sunset period boundaries do not produce lighting or terrain jumps', () => {
+  const environment=make();environment.climate=getClimate(43.7,-79.4);
+  const sceneAt=(milliseconds:number)=> {
+    const now=new Date(milliseconds);
+    return resolveScene(true,{...environment,weather:{...environment.weather!,observedAt:now.toISOString()}},now,auto);
+  };
+  const origin=Date.parse('2026-10-16T00:00:00Z');
+  for(const [startHour,endHour,beforePeriod,afterPeriod] of [
+    [11,12,'night','dawn'],[12,13,'dawn','day'],[21,22,'day','dusk'],[23,24,'dusk','night'],
+  ] as const) {
+    let low=origin+startHour*3600000,high=origin+endHour*3600000;
+    assert.equal(sceneAt(low).period,beforePeriod);assert.equal(sceneAt(high).period,afterPeriod);
+    // Locate the actual solar transition, avoiding a brittle precomputed sunrise time.
+    while(high-low>1) {
+      const midpoint=Math.floor((low+high)/2);
+      if(sceneAt(midpoint).period===beforePeriod) low=midpoint;
+      else high=midpoint;
+    }
+    const before=sceneAt(low-1000),after=sceneAt(high+1000);
+    assert.equal(before.period,beforePeriod);assert.equal(after.period,afterPeriod);
+    assert.equal(before.landscape,after.landscape);
+    assert.deepEqual(before.foliage,after.foliage);
+    assert.deepEqual(before.weather,after.weather);
+    for(const field of ['landscapeFilter','figureFilter'] as const) {
+      const values=(value:string)=>Array.from(value.matchAll(/\((-?[\d.]+)\)/g),match=>Number(match[1]));
+      const a=values(before[field]),b=values(after[field]);
+      assert.equal(a.length,b.length);
+      assert.ok(a.every((value,index)=>Math.abs(value-b[index])<=.002),`${beforePeriod} to ${afterPeriod}: ${field}`);
+    }
+    assert.ok(Math.abs(before.atmosphere.shadowStrength-after.atmosphere.shadowStrength)<.001);
+  }
+});
+
+
+test('a continuous heavy shower cloud deck also marks the moon as obscured', () => {
+  const env=make();env.weather!.weatherCode=82;env.weather!.cloudCover=50;
+  const scene=resolveScene(true,env,date,{...auto,time:'night'});
+  assert.equal(scene.atmosphere.fullOvercast,true);
+  assert.equal(scene.moonOpacity,0);
+  assert.match(scene.description,/behind clouds/);
 });

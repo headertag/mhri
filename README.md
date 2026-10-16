@@ -62,10 +62,12 @@ The complete figure remains visible on both wide and narrow screens. Instead of 
 
 | Layer | Asset or implementation | Purpose |
 | --- | --- | --- |
-| Distant clouds | `public/art/cloud-sky.png` | A separate sky plate drifts very slowly behind the stationary tree silhouettes. |
-| Middle-distance landscape | `public/art/landscape-wide.png` plus `landscape-foreground-mask.svg` | The extended landscape fills the viewport; its sky is masked so cloud motion does not move the trees. |
-| Local environment variants | `public/art/environments/*.webp` | Separate painted landscapes and skies support time of day, seasons, wet ground and snow cover. |
-| Moon | `src/moon.tsx` and SunCalc | A separate shaded disc follows the calculated phase, orientation and horizon visibility; dense clouds hide it. |
+| Sky color | `src/scene-atmosphere.ts` | A solar-altitude gradient provides only the sky color, independently of cloud imagery. |
+| Stars | `src/sky-layers.tsx` | A fixed transparent SVG field appears with darkness; it does not drift with the clouds. |
+| Distant clouds | `clouds-isolated.webp` and `clouds-overcast.webp` | Neutral cloud material moves separately, with runtime lighting and opaque coverage for overcast conditions. |
+| Middle-distance landscape | Landscape plate plus `environments/masks/leafy.svg` or `dormant.svg` | Separate canopy mattes reveal the live sky through leafy or bare branches while keeping terrain and water opaque. The non-local scene uses `landscape-foreground-mask-v2.svg`. |
+| Local environment variants | `public/art/environments/*.webp` | Painted landscapes support foliage, wet ground and snow cover; runtime lighting preserves those states across the day. |
+| Moon | `src/moon.tsx`, NASA lunar albedo and SunCalc | Only the illuminated surface is painted; the whole lunar disc blocks stars behind it, and clouds pass in front. |
 | Weather atmosphere | `src/weather-effects.tsx` | Wind-influenced rain, snow and hail, restrained mist and ground ripples add depth without repainting the figure. |
 | Near landscape | The same landscape, revealed with a lower-edge mask | A small opposing parallax movement provides foreground depth. |
 | Golden aureole | A circular CSS radial gradient | Sits behind the head and responds at an intermediate parallax depth. |
@@ -75,6 +77,8 @@ The complete figure remains visible on both wide and narrow screens. Instead of 
 | Interface | MHRI at upper left; copyright and About at the bottom | Offers identity and controls with minimal competition for the painting. |
 
 The landscape and sky plates are **AI-generated interpretive extensions made for this project**. They do not reveal missing parts of the historical canvas. The additional glow, ground shadows, parallax, depth blur, environmental colour integration and cloth movement are also modern interventions. The subject’s texture comes from the supplied painting; its silhouette masks and display geometry are project work.
+
+The landscape matte uses `dormant.svg` for `winter`, `snow` and `snow-patchy-dormant`; other active plates use `leafy.svg`. The selected mask is decoded with its landscape and cloud assets before the scene changes. `scripts/build-landscape-masks.py` reproducibly derives native SVG alpha paths from the original landscape and dormant winter plate without repainting them. Python, Pillow, NumPy and SciPy are preparation tools only, not runtime dependencies.
 
 ### Compositing the figure into the landscape
 
@@ -117,9 +121,9 @@ The browser refreshes environment data every 30 minutes while visible and checks
 
 ### Painted variants and atmospheric interpretation
 
-Eighteen generated WebP assets provide thirteen landscapes—dawn, dusk, night, spring, summer, autumn, dormant winter, dry, rain, full snow with dormant or green trees, and patchy snow with dormant or green trees—and five sky plates—dawn, dusk, night, clear and overcast. They are alternatives to the project's extended landscape, not alterations of `le-bon-pasteur.png` or discovered historical versions. The [generation record](docs/environment-art-prompts.md) contains the prompts and source references; [the manifest](public/art/environments/manifest.json) records dimensions and hashes.
+The [manifest](public/art/environments/manifest.json) contains **20 generated WebP assets**: thirteen landscapes—dawn, dusk, night, spring, summer, autumn, dormant winter, dry, rain, full snow with dormant or green trees, and patchy snow with dormant or green trees—five retained legacy sky plates, and two neutral cloud materials. The current renderer uses normally lit foliage, wet-ground or snow material at every time of day; the dawn, dusk and night landscape plates and combined sky plates are retained legacy artwork, not runtime lighting switches. These are interpretive extensions, not alterations of `le-bon-pasteur.png` or discovered historical versions. The [generation record](docs/environment-art-prompts.md) contains the prompts and source references; the manifest records dimensions and hashes.
 
-Time, foliage, ground cover and weather are separate inputs. Foliage is preserved with runtime lighting treatments for dawn, dusk and night. Rain or hail uses the rain landscape when foliage is green, while retaining fresh spring, dry, autumn or dormant foliage with wet lighting and precipitation in those states. A single shower does not instantly green dry vegetation. **Winter does not automatically mean snow:** dormant vegetation can appear over bare ground. Live snowfall controls particles; ground cover follows its own modeled snow depth. Either can appear without the other.
+Time, foliage, ground cover and weather are separate inputs. Solar altitude continuously adjusts terrain illumination, figure illumination and cast-shadow strength, preserving the chosen ground and foliage rather than swapping them at a dawn/dusk/night boundary. Cloud cover, rain and fog dim or soften the illumination independently; the underlying sky-color gradient still follows solar time alone. These filters are restrained compositing treatments, not physically based relighting. Rain or hail uses the rain landscape when foliage is green, while retaining fresh spring, dry, autumn or dormant foliage with wet lighting and precipitation in those states. A single shower does not instantly green dry vegetation. **Winter does not automatically mean snow:** dormant vegetation can appear over bare ground. Live snowfall controls particles; ground cover follows its own modeled snow depth. Either can appear without the other.
 
 ### Climate-aware foliage, with explicit limits
 
@@ -162,9 +166,13 @@ Settled snow can remain under clear skies, with the normal sun/moon calculation 
 
 ### Astronomy rather than a fixed moon picture
 
-[SunCalc 2.1.1](https://github.com/mourner/suncalc) calculates solar altitude and the moon's phase, illuminated fraction, altitude, azimuth and orientation from the current UTC instant and approximate coordinates. Solar altitude determines day, dawn, dusk and night, including polar day/night. The moon is rendered separately; no moon is baked into an environment image. In automatic mode it is hidden below the local horizon and behind overcast skies, dense clouds, fog and thunderstorms. The overcast night uses a starless sky rather than showing stars through opaque cloud.
+[SunCalc 2.1.1](https://github.com/mourner/suncalc) calculates solar altitude and the moon's phase, illuminated fraction, altitude, azimuth and orientation from the current UTC instant and approximate coordinates. A continuously interpolated solar-altitude gradient supplies sky color, including twilight and polar day/night. Weather changes the separate cloud plane and visibility, not the underlying solar sky color. A fixed, transparent SVG star field fades with daylight and cloud cover; its positions are artistic, not catalogued stars.
 
-The landscape has no geographic compass bearing. The moon's screen position uses a restrained right-hand composition informed by its altitude and azimuth; this is not an astronomical sky chart. **Explore the other skies → Night** keeps today's calculated phase but lifts the preview moon to a demonstration altitude. Preview mode is labeled and does not claim that the moon is currently above the visitor's horizon.
+The moon uses a web-sized [NASA Scientific Visualization Studio lunar albedo map](docs/moon-imagery.md), projected onto a sphere with a calculated terminator. Only the illuminated surface contributes visible pixels: the unlit side does not paint a dark circle over the sky. A separate mask still blocks stars behind the entire lunar disc. Neutral painted clouds sit in front of both stars and moon; the overcast material covers the whole sky without transparent gaps. No moon or stars are baked into the moving cloud material.
+
+In automatic mode the moon is hidden below the local horizon and behind obscuring weather. It can remain visible in daylight when its altitude, phase and atmospheric visibility allow. Its screen position uses a restrained right-hand composition informed by altitude and azimuth. The landscape has no compass bearing, and neither this placement nor the decorative star field is a scientific sky chart.
+
+Manual time previews use representative solar altitudes: Day **30°**, Dawn/Dusk **−2°**, and Night **−24°**. **Explore the other skies → Night** keeps today's calculated lunar phase but lifts the moon to a demonstration altitude. Previews are labeled and do not claim these positions are currently real. With no known location, the device-clock fallback supplies a representative sky color without inventing a locally visible moon.
 
 ### Data flow, privacy and limits
 
@@ -295,11 +303,14 @@ src/page.tsx                  Homepage, About dialog, settings, copyright, wordm
 src/artwork.tsx               Scene layers, masks, shadows and parallax/cloud movement
 src/environment.ts           API fetching, selected-city persistence and graceful fallback
 src/environment-settings.tsx  About dialog location search and atmosphere preview controls
-src/scene-environment.ts      Selects landscape/sky assets, lighting and weather state
+src/scene-environment.ts      Selects landscape/cloud assets, lighting and weather state
+src/scene-atmosphere.ts       Solar sky gradient, cloud lighting and star visibility
+src/sky-layers.tsx            Independent sky color, fixed SVG stars, moon and moving clouds
 src/scene-foliage.ts          Climate/history/daylight foliage proxy and explanatory reasons
 src/scene-ground.ts           Fresh modeled depth and independent ground-snow previews
 src/scene-astronomy.ts        SunCalc positions, lunar visibility, seasons and WMO codes
-src/moon.tsx                  Phase-aware moon disc and restrained sky positioning
+src/moon.tsx                  NASA-textured illuminated moon and restrained sky positioning
+src/moon-lighting.ts          Lunar texture projection, terminator and transparent raster
 src/weather-effects.tsx       Bounded precipitation and mist animation
 src/environment.css           Environment lighting and settings layout
 src/weather-effects.css       Atmospheric overlays and reduced-motion behavior
@@ -310,8 +321,10 @@ src/roman-year.ts             Roman-numeral year formatting
 src/globals.css               Responsive composition and visual styling
 src/fonts.css                 Self-hosted font declarations
 src/components/ui/            Existing dialog, switch, slider and button primitives
-public/art/                   Original reproduction, extended plates and landscape mask
-public/art/environments/      Generated time/weather/season WebPs and asset manifest
+public/art/                   Original reproduction, extended plates and legacy-scene matte
+public/art/environments/      Generated landscapes, neutral clouds, legacy skies and manifest
+public/art/environments/masks/ Reproducible leafy/dormant SVG terrain mattes
+public/art/moon-albedo.webp   NASA lunar surface texture; see its provenance document
 public/fonts/                 Fonts and their SIL Open Font License notices
 server/index.mjs              Native HTTP server, static caching, API routes, redirect and health
 server/environment.mjs        Validated IP/city/weather/history providers, limits and caches
@@ -323,16 +336,20 @@ Dockerfile                    Node build/test stage and unprivileged Node runtim
 fly.toml                      Fly app, region, HTTPS, machine size and health checks
 scripts/check-server.mjs       Production HTTP smoke checks
 scripts/build-climate-grid.py Reproduces the bundled climate grid from pinned source data
+scripts/build-landscape-masks.py Reproduces SVG terrain mattes; Python/Pillow/NumPy/SciPy
 docs/fly-dns.md                Exact GoDaddy records and certificate cutover steps
 docs/environment-art-prompts.md Source references and environment generation prompts
 docs/environment-uat.md        Manual UAT checklist and automated-coverage boundaries
 docs/climate-data.md           Climate data provenance, reproduction and lookup limitations
+docs/moon-imagery.md           NASA lunar texture credit, source, rights and preparation
 .github/workflows/deploy.yml   Build and publish pipeline
 ```
 
 The Fly.io edition reuses the approved prototype's artwork, masks and core composition. Its Vite/React bundle and native Node API have no dependency on the private UAT URL or Sites authentication. Outbound provider requests are limited to the location, current/recent weather and city-search services described above; astronomy is calculated in the browser and climate lookup uses the bundled raster. Normal builds need no raster download or GIS package; the separate preparation script is only needed to reproduce the climate data.
 
-The 16 October environment work includes deterministic coverage of **448 preview combinations** (4 times × 7 weather choices × 4 seasons × 4 ground choices), astronomical edge cases, provider failures and HTTP delivery. Climate additions cover actual raster cells, foliage rules, multi-week history validation, independent failures and cache lifetimes. These tests confirm selection logic and available assets, not the visual quality of every rendered combination. Interactive browser automation was unavailable during the initial environment deployment. The ALICE run below is a **pre-patch baseline**, not validation of this patch; no new ALICE batch was run for the climate or ground-snow revisions. **Manual desktop/mobile visual UAT remains pending.** Follow [the environment UAT guide](docs/environment-uat.md) before treating that visual review as complete.
+The 16 October environment work includes deterministic coverage of **448 preview combinations** (4 times × 7 weather choices × 4 seasons × 4 ground choices), astronomical edge cases, provider failures and HTTP delivery. Climate additions cover actual raster cells, foliage rules, multi-week history validation, independent failures and cache lifetimes. These tests confirm selection logic and available assets, not the visual quality of every rendered combination.
+
+Targeted local browser checks at **1280 × 720** and **390 × 844** covered Night/Clear, Night/Partly cloudy and Night/Overcast. They confirmed a textured illuminated moon without a dark sky disc, fixed stars while clouds moved, opaque overcast with stars and moon hidden, and no mobile viewport overflow after the focus-scroll correction. Additional **2060 × 900** Night/Clear checks verified both leafy and dormant mattes: the sky showed through canopy and bare-branch gaps without the former vertical sky rectangles. Nine active landscape plates were inspected in offline composites; SVG alpha matched the builder reference, and rebuilding produced identical bytes. This is local verification, not production-deployment confirmation or complete seasonal UAT. The ALICE gallery remains a **pre-patch baseline**; no new batch was run. Broader climate, season, precipitation and device review remains pending in [the environment UAT guide](docs/environment-uat.md).
 
 ### ALICE regional screenshots
 
@@ -346,7 +363,7 @@ For changes, build locally and review the following before pushing:
 - The gap between crook and robe remains transparent; no sky fragments follow the halo or hairline.
 - Only the intended cloth region deforms; the face, sheep and feet stay stable.
 - The cast shadow remains anchored at the feet, extends back/right, and follows the cloth without detached sandal outlines. Motion off and WebGL fallback retain a static shadow.
-- Clouds drift behind the trees, and speed changes do not jump.
+- Clouds drift behind the trees without carrying stars or sky color; speed changes do not jump. Overcast clouds hide the celestial layers, and the moon's unlit disc blocks stars without painting a dark patch.
 - The About dialog opens, closes with Escape and can be operated by keyboard.
 - Reduced motion, Motion off, and the original-painting comparison work.
 - Neuromancer mode starts unchecked; its checkbox works by keyboard, toggles the effect cleanly, and honours Motion off and reduced motion.

@@ -66,9 +66,8 @@ export function AliceCapture({ runId, appReady, environment, environmentLoading,
   const captureReady = settled && stagedScene.status === 'ready' && stagedScene.scene === requestedScene;
   const state = stagedScene.status === 'error' ? 'asset-error' : captureReady ? 'ready' : 'loading';
   const moonVisible = scene.moonOpacity > 0;
-  const moonVisibility = !scene.sky ? 'location unavailable' : scene.period !== 'night' ? 'daylight'
-    : !scene.sky.moonAboveHorizon ? 'below horizon' : scene.weather.obscuresMoon ? 'behind clouds'
-    : !moonVisible ? 'unlit or near horizon' : 'visible';
+  const moonVisibility = !scene.sky ? 'location unavailable' : !scene.sky.moonAboveHorizon ? 'below horizon' : scene.atmosphere.fullOvercast ? 'behind clouds'
+    : !moonVisible ? 'unlit or near horizon' : scene.period === 'day' ? 'visible in daylight' : 'visible';
   const metadata = useMemo(() => ({
     schema: 1,
     runId,
@@ -121,7 +120,9 @@ export function AliceCapture({ runId, appReady, environment, environmentLoading,
       moonVisibility,
       moonOpacity: scene.moonOpacity,
       landscape: scene.landscape,
-      skyImage: scene.skyImage,
+      landscapeMask: scene.landscapeMask,
+      cloudImage: scene.cloudImage,
+      atmosphere: scene.atmosphere,
       preview: scene.preview,
     },
     viewport: device,

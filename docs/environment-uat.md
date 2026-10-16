@@ -1,10 +1,22 @@
 # Local environment UAT
 
-Prepared 16 October 2026 for the MHRI time, weather, climate-aware foliage, ground snow and moon update.
+Prepared 16 October 2026 for the MHRI time, weather, climate-aware foliage, ground snow and independently layered sky update.
 
-**Status:** deterministic automated tests cover environment logic, the actual climate raster, foliage rules, snow-depth validation, provider boundaries and HTTP behavior. Interactive browser automation was unavailable in this implementation session. The existing [ALICE gallery](https://mhri.net/uat/alice/us-cities-20261016-1552/index.html) is a **pre-climate-revision and pre-ground-snow baseline**: 27 of 30 jobs returned ready screenshots with live weather, before these changes. No ALICE jobs were rerun for either revision. The desktop/mobile visual checks below remain **pending manual UAT**; this document does not claim they passed.
+**Status:** deterministic automated tests cover environment logic, the actual climate raster, foliage rules, snow-depth validation, provider boundaries and HTTP behavior. Targeted local browser checks of the revised sky have also been performed, as recorded below. Broader climate, season, precipitation and device UAT remains pending. The existing [ALICE gallery](https://mhri.net/uat/alice/us-cities-20261016-1552/index.html) is a **pre-climate, pre-ground-snow and pre-layered-sky baseline**: 27 of 30 jobs returned ready screenshots with live weather before these revisions. No new ALICE batch was run. Neither the gallery nor the local checks establish production deployment of this revision.
 
 Use [mhri.net](https://mhri.net/) for the deployed experience. Open **About the painting** at the bottom right. Allow a few seconds for a cold Fly machine, provider response and the selected landscape/sky images to load. Record browser, device/viewport, selected city, time/weather/season/ground-snow choices, and a screenshot for any visual problem.
+
+## Completed local sky checks — 16 October 2026
+
+Browser inspection at **1280 × 720** and **390 × 844** covered Night/Clear, Night/Partly cloudy and Night/Overcast:
+
+- The moon showed illuminated NASA surface detail without a painted dark disc. On mobile its 35px display size matched a 16.625px full-disc star-occlusion radius.
+- The star layer's own transform remained `none` while the cloud transform changed, confirming that stars did not drift with clouds.
+- Overcast state reported star opacity 0, moon opacity 0 and cloud opacity 1, with a continuous cloud deck.
+- The 390px viewport had no overflow after the scene container used `overflow: clip`, preventing dialog focus from internally scrolling the oversized artwork.
+- At **2060 × 900**, Night/Clear browser checks verified the corrected leafy matte and the winter `dormant.svg` matte. The sky showed through leafy and bare-branch openings without vertical sky rectangles; the winter scene retained a zero internal scroll offset. Nine active plates were also inspected in offline composites, SVG alpha matched the builder reference, and regeneration was byte-identical.
+
+These are targeted local checks, not a pass of every checklist item below or confirmation of production deployment.
 
 ## First visit and local conditions
 
@@ -41,7 +53,7 @@ The raster is a specific climate-normal dataset, not a list of conventional city
 
 For dry conditions, inspect the separate dry landscape: muted olive foliage and dry ground should preserve the painting's composition. Select **Rain** while keeping Season on Automatic. Dry foliage should remain dry beneath the wet-light/rain treatment; a shower must not instantly replace it with lush summer leaves. Select **Snow** and **Ground snow → Bare ground** to check falling flakes without an invented snowpack. Ground cover and precipitation are independent.
 
-Switch Season to Autumn or Winter in Los Angeles or Singapore. This **deliberate preview must still work**, with a preview label and a reason explaining the manual override. Return Season to Automatic and verify climate-based foliage returns. Changing Time of day alone should relight the selected foliage without forcing calendar seasons.
+Switch Season to Autumn or Winter in Los Angeles or Singapore. This **deliberate preview must still work**, with a preview label and a reason explaining the manual override. Return Season to Automatic and verify climate-based foliage returns. Changing Time of day alone should relight the selected foliage without forcing calendar seasons or replacing it with a prepainted dawn, dusk or night landscape.
 
 The backend summarizes up to 28 completed local days and returns history with at least 14 valid records; the foliage rules require at least 21 consistent samples, at least 75% interval coverage, an interval no longer than 35 days and a recent end date. A single cold reading must not cause leaf loss. History-only outages retain a prior valid summary for the same location for up to six days, with its original dates; failed refreshes must not extend retention, and changing cities must not reuse the old city's context. Automated tests cover invalid/stale history, current/history failures independently and the separate caches; manual inspection should confirm that live weather remains usable if history is unavailable and that the About reason remains understandable. Do not present climate normals or this artistic proxy as observed vegetation.
 
@@ -63,8 +75,8 @@ The time/weather/season/ground matrix covers **4 × 7 × 4 × 4 = 448** explicit
 | Day / Clear / Spring | Fresh foliage and a readable original figure; no precipitation. |
 | Dawn / Clear / Summer | Restrained rose/gold sky and lighting, without moving tree silhouettes. |
 | Dusk / Partly cloudy / Autumn | Warm dusk sky, autumn foliage, readable figure and foreground. |
-| Night / Clear / Summer | Dark but readable landscape, subtle stars and a phase-aware moon when its illumination permits. |
-| Night / Overcast / Summer | No visible moon or baked star field; a dark, continuous cloudy sky. |
+| Night / Clear / Summer | Dark but readable landscape, fixed subtle stars and a textured phase-aware moon when its illumination permits. |
+| Night / Overcast / Summer | No visible moon or stars; a dark, continuous opaque cloud deck. |
 | Night / Mist & fog / Autumn | Moon hidden, softened distance and fog without an opaque veil over the face. |
 | Day / Rain / Spring | Damp landscape, restrained falling rain and small ground ripples; no snowflakes. |
 | Dusk / Storm / Autumn | Dense cloud and rain; no flashing lightning or audio. |
@@ -74,7 +86,7 @@ The time/weather/season/ground matrix covers **4 × 7 × 4 × 4 = 448** explicit
 | Day / Clear / Summer / Snow-covered | Green canopy with settled snow and no flakes; uses the evergreen snow plate. |
 | Day / Clear / Summer / Patchy snow | Broken patches of ground snow with retained green foliage and no flakes. |
 
-Check sky/landscape alignment around tree canopies, shoreline and horizon as the clouds move. Sparse winter/snow branches are especially worth inspecting because the original landscape mask was drawn around leafy trees. Check that no old ground or sky fragments move with the figure and that the foot shadow remains confined to nearby ground.
+Check sky/landscape alignment around tree canopies, shoreline and horizon as the clouds move. `winter`, `snow` and `snow-patchy-dormant` use a dedicated dormant-branch matte; other active plates use the leafy matte. Confirm each selected mask finishes decoding before the scene changes, with sky visible through branch openings and terrain/water intact. Check that no old ground or sky fragments move with the figure and that the foot shadow remains confined to nearby ground.
 
 ## Ground snow independently of falling snow
 
@@ -90,18 +102,25 @@ The full-cover plate is `snow-evergreen.webp` for green, fresh or dry foliage an
 
 Snow depth is a weather-model estimate of surface snow, **not a glacier or permanent-ice mask**. It does not establish measured Antarctic ice-sheet thickness or accurately depict local polar vegetation. The retained woodland and path remain part of this interpretive artwork.
 
-## Moon behavior
+## Sky layers and moon behavior
 
-- In Automatic time, phase, illuminated fraction, orientation and above/below-horizon state are calculated for the selected location and current date. A clear night does not guarantee the moon is above the horizon. A near-new moon may be barely visible.
-- Night preview preserves today's phase but gives the moon a demonstration altitude. It does not force a full moon and does not claim the preview altitude is currently real.
-- Compare Night/Clear with Night/Overcast, Mist & fog and Storm. Dense clouds must conceal the moon and overcast sky must not retain the clear-night stars.
-- Return to Automatic after previewing. A moon below the real horizon should disappear again.
-- The moon's location on the screen is a compositional approximation; the painting is not an accurately oriented sky chart.
+The scene order is solar sky color, fixed transparent SVG stars, the independently rendered moon, then moving cloud material. The sky gradient follows solar altitude; the neutral clouds receive a separate lighting treatment. The [20-asset manifest](../public/art/environments/manifest.json) includes thirteen landscapes, five retained legacy sky plates and two current cloud materials. The local-environment renderer must not use a combined legacy sky plate as its moving clouds.
+
+Terrain always uses a normally lit foliage, wet-ground or snow material. In Automatic time, terrain/figure illumination and shadow strength vary continuously with solar altitude; cloud cover and precipitation can dim or soften that illumination while the underlying sky-color gradient stays time-based. With a local clock fixture, inspect a transition across dawn or dusk and confirm there is no landscape-image swap or abrupt light jump. The separate manual time presets intentionally select representative sun altitudes rather than simulate a time-lapse.
+
+1. Compare Day, Dawn, Dusk and Night with Clear weather. The sky color should change coherently, without a rectangular sky image moving over another background. Time previews use representative sun altitudes: 30°, −2°, −2° and −24°, respectively. Automatic time uses the selected location and current date; previews do not claim those sample altitudes are current.
+2. Set Night / Partly cloudy and cloud speed to 4×. Cloud shapes should move while the stars remain fixed. Transparent gaps must reveal the same underlying sky color, and cloud edges should remain soft without a painted blue or black backing. Inspect desktop and mobile crops.
+3. Compare Night / Clear with Night / Overcast, Mist & fog and Storm. Dense cloud must conceal the moon and stars; overcast must form a continuous deck without clear-sky holes. Repeat in Day to check that overcast is lit appropriately while the underlying sky's solar palette remains time-based.
+4. Inspect a crescent and a gibbous phase using a controlled local date fixture when needed. Only the illuminated lunar surface should be visible, with NASA-derived surface detail. The unlit portion must not appear as a black or blue disc, and stars must not show through that unlit portion. Clouds should pass in front of the moon. [Texture credit and limits](moon-imagery.md).
+5. In Automatic time, phase, illuminated fraction, orientation and above/below-horizon state follow the selected location and current date. A clear night does not guarantee the moon is above the horizon. A near-new moon may be barely visible. A suitable moon above the horizon may also appear in daylight; day alone must not force it off.
+6. Night preview preserves today's phase but gives the moon a demonstration altitude. It must not force a full moon. Return to Automatic and confirm a moon below the real horizon disappears again.
+
+The star positions are decorative, and the moon's screen position is a compositional approximation. This painting has no geographic compass bearing and is not a scientific sky chart.
 
 ## Motion, original view and Neuromancer
 
 1. With rain or snow active, turn **Motion** off. Cloud, cloth, parallax and weather animation should stop while a static atmosphere remains. Turning Motion on should resume gently without an image jump.
-2. Move the Cloud speed slider through 0×, 1× and 4×. At 4× the established horizontal cycle is about 30 seconds; trees should remain separate from the moving sky.
+2. Move the Cloud speed slider through 0×, 1× and 4×. At 4× the established horizontal cycle is about 30 seconds; trees, sky color and stars should remain separate from the moving clouds.
 3. Enable the device's reduced-motion preference and reload. Check static rain/snow/mist and no flashing or animated signal effects. Existing motion controls should remain usable.
 4. Switch away from the tab, then return. Animation should not leap across the screen; the clock should update, with conditions refreshed after a sufficiently long absence.
 5. Enable **Show original painting**. Confirm the supplied complete portrait is shown without the new environment, precipitation or moon. It should turn Neuromancer off. Turn Original off to return to the scene.
@@ -110,7 +129,7 @@ Snow depth is a weather-model estimate of surface snow, **not a glacier or perma
 
 ## Automated checks and limits
 
-Run `npm test` for mocked server/provider tests, astronomy regressions and the 112-combination asset-selection matrix. Run `npm run build` for the TypeScript and Vite production build. With `npm start` running locally, `node scripts/check-server.mjs http://127.0.0.1:8080` checks HTTP behavior and the expected no-Fly-location fallback.
+Run `npm test` for mocked server/provider tests, astronomy regressions and the 448-combination asset-selection matrix. Run `npm run build` for the TypeScript and Vite production build. With `npm start` running locally, `node scripts/check-server.mjs http://127.0.0.1:8080` checks HTTP behavior and the expected no-Fly-location fallback.
 
 In local development the API intentionally does not geolocate the server. Run the Node server alongside Vite and use a selected city. Vite's static `npm run preview` alone is not an API-backed test.
 

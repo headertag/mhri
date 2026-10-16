@@ -90,7 +90,7 @@ test('all documented WMO codes map to a known state', () => {
   assert.equal(classifyWeather(2, 200).cloudCover, 100);
 });
 
-test('moon is hidden by overcast/fog, daylight and the horizon with gradual cloud attenuation', () => {
+test('moon is hidden by overcast/fog and the horizon, with gradual daylight and cloud attenuation', () => {
   const sky = getSkyState(new Date('2026-10-26T04:12:00Z'), 43.65, -79.38);
   assert.equal(sky.period, 'night');
   assert.ok(sky.moonAltitude > 5);
@@ -100,11 +100,42 @@ test('moon is hidden by overcast/fog, daylight and the horizon with gradual clou
   assert.equal(getMoonOpacity(sky, classifyWeather(95, 20)), 0);
   const partiallyVisible = getMoonOpacity(sky, classifyWeather(2, 60));
   assert.ok(partiallyVisible > 0 && partiallyVisible < 1);
-  assert.equal(getMoonOpacity({ ...sky, period: 'day' }, classifyWeather(0)), 0);
+  const daylight = getMoonOpacity({ ...sky, period: 'day', sunAltitude: 30 }, classifyWeather(0));
+  assert.ok(daylight > 0 && daylight < .3);
   assert.equal(getMoonOpacity({ ...sky, moonAltitude: -5, moonAboveHorizon: false }, classifyWeather(0)), 0);
   assert.equal(getMoonOpacity({ ...sky, illumination: 0 }, classifyWeather(0)), 0);
   const onHorizon = getMoonOpacity({ ...sky, moonAltitude: 1 }, classifyWeather(0));
   assert.ok(onHorizon > 0 && onHorizon < 0.2);
+});
+
+test('the real Toronto daytime moon is subdued while Salvador evening moon remains fully visible', () => {
+  const instant = new Date('2026-10-16T21:45:00Z');
+  const toronto = getSkyState(instant, 43.7, -79.4);
+  const salvador = getSkyState(instant, -13, -38.5);
+  assert.equal(toronto.period, 'day');
+  assert.ok(toronto.sunAltitude > 6 && toronto.sunAltitude < 9);
+  assert.ok(toronto.moonAltitude > 15 && toronto.moonAltitude < 21);
+  const daytime = getMoonOpacity(toronto, classifyWeather(0, 0));
+  assert.ok(daytime > 0 && daytime < .6);
+  assert.equal(salvador.period, 'night');
+  assert.equal(getMoonOpacity(salvador, classifyWeather(0, 4)), 1);
+  assert.equal(getMoonOpacity(toronto, classifyWeather(3, 100)), 0);
+});
+
+test('lunar contrast follows solar altitude continuously across twilight and day boundaries', () => {
+  const sky = getSkyState(new Date('2026-10-26T04:12:00Z'), 43.65, -79.38);
+  const clear = classifyWeather(0, 0);
+  const opacity = (sunAltitude: number) => getMoonOpacity({ ...sky, sunAltitude,
+    period: sunAltitude < -6 ? 'night' : sunAltitude >= 6 ? 'day' : 'dawn' }, clear);
+  const levels = [-24, -6, -3, 0, 6, 15, 30].map(opacity);
+  assert.equal(levels[0], 1);
+  assert.equal(levels[1], 1);
+  assert.ok(levels.every((value, index) => value > 0 && value <= 1 && (index === 0 || value <= levels[index - 1])));
+  assert.ok(levels.at(-1)! >= .2 && levels.at(-1)! <= .25);
+  for (const boundary of [-6, 6, 15]) {
+    assert.ok(Math.abs(opacity(boundary - .001) - opacity(boundary + .001)) < .001);
+  }
+  assert.equal(getMoonOpacity({ ...sky, period: 'day', sunAltitude: 30, illumination: 0 }, clear), 0);
 });
 
 test('bad astronomy inputs fail explicitly rather than producing a broken scene', () => {

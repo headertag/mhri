@@ -156,9 +156,13 @@ export function classifyWeather(code: number, cloudCover?: number): WeatherState
 
 /** Visibility belongs to the atmospheric layer; it does not change the calculated lunar phase. */
 export function getMoonOpacity(sky: SkyState, weather: WeatherState): number {
-  if (sky.period !== 'night' || !sky.moonAboveHorizon || weather.obscuresMoon) return 0;
+  if (!sky.moonAboveHorizon || weather.obscuresMoon) return 0;
   const horizon = smoothstep(0, 5, sky.moonAltitude);
   const cloudTransmission = 1 - smoothstep(20, 85, weather.cloudCover);
   const newMoonFade = smoothstep(0.001, 0.025, sky.illumination);
-  return horizon * cloudTransmission * newMoonFade;
+  // A daytime moon can be above the horizon. Reduce its contrast continuously as
+  // the Sun rises, without a discontinuity at a named day/twilight boundary.
+  // This is an artistic display treatment, not measured photometric visibility.
+  const solarContrast = 1 - .78 * smoothstep(-6, 15, sky.sunAltitude);
+  return horizon * cloudTransmission * newMoonFade * solarContrast;
 }

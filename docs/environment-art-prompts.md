@@ -2,12 +2,14 @@
 
 Created 16 October 2026 using the built-in image generation tool. These are interpretive environment assets for MHRI, not historical alternative versions of the painting. The original painting and foreground figure were not edited.
 
+The current runtime preserves normally lit foliage, wet-ground or snow material and applies continuous solar-altitude lighting to it. The dawn, dusk and night landscape variants and five combined sky plates below are retained legacy assets; they are no longer selected as time-of-day lighting replacements. Current sky color is a runtime gradient, stars are an independent transparent SVG field, and the neutral cloud materials documented below contain only clouds. The NASA lunar texture has separate [source and attribution documentation](moon-imagery.md).
+
 ## Source and delivery
 
 - Landscape edit target: `public/art/landscape-wide.png` (1774 × 887).
 - Sky edit target: `public/art/cloud-sky.png` (1774 × 887); each generated landscape was a secondary palette reference for its sky.
 - Delivery: `public/art/environments/*.webp`, all 1774 × 887 (2:1). The initial 14 assets use WebP quality 88, effort 6; the later dry-season addition uses quality 90. Format conversion used Sharp; no compositing or content changes were performed outside image generation.
-- Final files were visually inspected. Original tree placement, shoreline, path and earth contours remain closely aligned. Winter and snow naturally expose twig structure within the original tree positions, so a mask derived from fully leafed trees can retain small sky fragments. Use conservative sky blending for these seasons.
+- Final files were visually inspected. Original tree placement, shoreline, path and earth contours remain closely aligned. The runtime now uses separate leafy and dormant SVG mattes to clear sky between canopy and bare-branch openings. `scripts/build-landscape-masks.py` reproduces these masks from the original landscape and winter plate using Python, Pillow, NumPy and SciPy; it leaves the painted assets unchanged.
 - Night plates contain no painted moon: lunar phase and occlusion must remain runtime layers.
 - Rain and snow plates contain no falling precipitation; precipitation is a runtime layer.
 - Winter is dormant vegetation without snow. `snow.webp` is a separate weather-driven asset, avoiding automatic snow in every winter climate.
@@ -108,3 +110,28 @@ Generated with the built-in image generation tool from `public/art/environments/
 Exact prompt:
 
 > Use case: lighting-weather. Create ONE edited environmental plate of the attached classical oil-painted winter landscape, exactly 1774 × 887 pixels, 2:1 panorama. The attached winter.webp is the EDIT TARGET. Preserve its exact composition, sky, horizon, every tree position, trunk, bare/dormant branch silhouette, sparse rusty leaves and leafless bushes, foreground branches, central footpath, terrain contours, distant hills, liquid river and shoreline. Keep the same old-master paint texture and cool soft neutral daylight. Change ONLY settled ground cover: add thin irregular natural patches of old melting snow over about 30–45 percent of visible land surfaces, especially shaded grass hollows, earth banks, path edges and a few low horizontal branches. Leave 55–70 percent of the land clearly exposed as original dormant olive/brown grass, dark earth and the muddy ochre path. Preserve clear large exposed portions of the central path. Snow patches have uneven melting edges and subtle cool shadows, not a uniform blanket. The trees must remain dormant and mostly bare with identical fine branching; no green regrowth, no new lush canopies, no changed tree species. Keep the river completely liquid and exposed, no ice and no snow on water. Preserve the original sky exactly. No falling snowflakes, precipitation streaks, people, animals, added structures, sun or moon discs, text, logos, frames or panels. This is patchy residual snow among dormant deciduous vegetation, not full fresh snow cover. Preserve all geometry and brushwork faithfully.
+
+
+## Neutral cloud materials — 16 October 2026
+
+Generated with the built-in image generation tool after visually inspecting the local reference images. These materials separate cloud geometry from sky color: the application supplies the solar sky gradient, transparent stationary stars, and the separate runtime moon, then shades the neutral clouds according to solar time. Neither new image contains a painted sky field, stars, moon, terrain, or precipitation particles. The five previously committed combined sky plates remain available as legacy artwork. Two unused night-specific intermediate assets were removed in favor of these neutral materials and runtime SVG stars.
+
+Both outputs were generated at 1774 × 887 and saved at the same dimensions as WebP, quality 90, alpha quality 100, effort 6. The final assets were visually inspected; the isolated cloud layer was additionally inspected composited over a plain diagnostic background to verify its feathered edges. Its decoded alpha histogram exactly matches the generated PNG: 29.952% fully transparent pixels, 70.048% semitransparent pixels, and five fully opaque pixels. Most cloud-body pixels have alpha 192–254; the upper-middle/right opening is genuinely transparent. The overcast material is fully opaque RGB across every pixel. Final hashes, byte sizes, dimensions, and alpha statistics are recorded in `public/art/environments/manifest.json`. Original reference files remain unchanged.
+
+### clouds-isolated.webp
+
+Edit/style reference: an intermediate generated night-cloud cutout, preserved locally as `exec-3d9311b1-64b4-42a2-b5d4-f8fa77cee1f9.png`; that intermediate is not shipped with the site.
+Generated PNG source: `exec-e0e19b34-34c0-468e-8fa7-a9602cdc2691.png`.
+Generated PNG SHA-256: `c48e1021780953f809a52ae797a7313e662de1ee9286010d288cce36296a6ac1`.
+Requested with `transparent_background: true`. Exact prompt:
+
+> Create a wide 2:1 cloud-material layer for compositing over a separate sky. Use the provided oil-painted cloud layer only as the reference for brushwork, cloud-bank shapes, and composition. Replace its blue/night coloration with NEUTRAL DAYLIT WHITE, pearl gray, dove gray, and soft neutral medium-gray cloud bodies. This is an isolated cloud cutout on a genuinely transparent RGBA background: every space between cloud banks must be completely transparent, with naturally feathered translucent edges; do not paint any sky, atmospheric blue field, dark backdrop, horizon, or opaque rectangular backing. Preserve loose layered classical oil-paint texture and subtle cloud depth. Cloud banks primarily occupy the left side, lower band, and far-right edge; keep a broad opening through the upper middle and upper right so a separately composited moon can show through. Sparse wisps may cross the opening, with transparent gaps. No stars, pinpoints of light, moon, sun, terrain, trees, people, text, border, or checkerboard. Neutral cloud colors only, no blue/cyan/purple and no black. Frame as an edge-to-edge horizontal 2:1 material atlas, target 1774 by 887 pixels. This layer will be shaded dynamically at runtime, so it must contain cloud material only and no time-of-day illumination.
+
+### clouds-overcast.webp
+
+Style reference: `public/art/environments/overcast-sky.webp`.
+Generated PNG source: `exec-0c223f24-e629-4dd8-9549-741c9ddb0ac7.png`.
+Generated PNG SHA-256: `9237e7bb9087a6d1ff1937b7b920292d805edbd5110fd8c6fbb368c7a58c8fbd`.
+Requested with `transparent_background: false`. Exact prompt:
+
+> Create a wide 2:1 continuous overcast CLOUD MATERIAL texture matching the provided classical oil-painted cloud reference. Fill every pixel of the entire canvas with a continuous dense opaque deck of layered cloud vapor: pearl white, light neutral gray, dove gray, and medium neutral gray, painterly soft edges and subtle volumetric depth. It must read as the underside of a complete overcast cloud ceiling with gently varied broad overlapping masses, not a flat fill. Keep contrast restrained and cloud shapes loose and natural. Absolutely no clear-sky holes, no blue, cyan, purple, or pure black; no horizon, ground, trees, terrain, silhouettes, sun, moon, stars, lights, rain streaks, snowflakes, people, text, or border. Fully opaque coverage all the way to all four edges. This is neutral cloud material for runtime solar shading, not a painted sky background or a time-of-day scene. Target 1774 by 887 pixels, horizontal 2:1 composition. Retain the tactile brushed oil-paint surface of the reference.

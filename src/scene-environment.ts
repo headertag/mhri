@@ -3,6 +3,7 @@ import type { Environment } from './environment';
 import type { ScenePreview } from './environment-settings';
 import { resolveFoliage, type FoliageState } from './scene-foliage.ts';
 import { resolveGround, type GroundState } from './scene-ground.ts';
+import { resolveAtmosphere, type AtmosphereState } from './scene-atmosphere.ts';
 
 export interface SceneEnvironment {
   enabled: boolean;
@@ -14,8 +15,9 @@ export interface SceneEnvironment {
   sky: SkyState | null;
   moonOpacity: number;
   landscape: string;
-  skyImage: string;
-  skyFilter: string;
+  landscapeMask: string;
+  cloudImage: string;
+  atmosphere: AtmosphereState;
   landscapeFilter: string;
   figureFilter: string;
   windSpeedKmh: number;
@@ -52,9 +54,10 @@ export function resolveScene(enabled: boolean, data: Environment | null, now: Da
   const isPreview = times.has(preview.time) || seasons.has(preview.season) || preview.weather in weatherCodes || ground.source === 'preview';
   // Previewing night preserves today's phase but places it at a demonstration altitude.
   // Live mode never shows a moon that is below the observer's horizon.
+  const previewAltitude: Record<string, number> = {day:30,dawn:-2,dusk:-2,night:-24};
   const moonSky = preview.time === 'night'
-    ? { ...(sky || getSkyState(now, 0, 0)), period: 'night' as const, moonAltitude: 40, moonAboveHorizon: true }
-    : sky ? { ...sky, period } : null;
+    ? { ...(sky || getSkyState(now, 0, 0)), period: 'night' as const, sunAltitude: -24, moonAltitude: 40, moonAboveHorizon: true }
+    : sky ? { ...sky, period, sunAltitude: times.has(preview.time) ? previewAltitude[preview.time] : sky.sunAltitude } : null;
   let plate: string = foliage.landscape;
   if (ground.state === 'covered') plate = foliage.state === 'autumn' || foliage.state === 'dormant' ? 'snow' : 'snow-evergreen';
   else if (ground.state === 'patchy') plate = foliage.state === 'autumn' || foliage.state === 'dormant' ? 'snow-patchy-dormant' : 'snow-patchy';
@@ -62,21 +65,13 @@ export function resolveScene(enabled: boolean, data: Environment | null, now: Da
     // A single rain shower must not replace dry, autumn or dormant vegetation.
     if (foliage.state === 'green') plate = 'rain';
   }
-  else if (foliage.state === 'green') plate = period === 'day' ? 'summer' : period;
-  if (weather.obscuresMoon && plate === 'night') plate = 'summer';
-  const timeAlreadyPainted = plate === period;
-  let landscapeFilter = period === 'night' ? (timeAlreadyPainted ? 'brightness(.94) saturate(.88)' : 'brightness(.39) saturate(.38)')
-    : period === 'dusk' ? (timeAlreadyPainted ? 'none' : 'brightness(.76) sepia(.18) saturate(.88)')
-    : period === 'dawn' ? (timeAlreadyPainted ? 'none' : 'brightness(.91) sepia(.12) saturate(.88)') : 'none';
-  if (weather.kind === 'fog') landscapeFilter += ' saturate(.72) contrast(.88)';
-  else if (weather.precipitation === 'rain' || weather.precipitation === 'hail') landscapeFilter += ' brightness(.88) saturate(.84)';
-  if (foliage.filter !== 'none') landscapeFilter += ` ${foliage.filter}`;
-  const figureFilter = period === 'night' ? 'brightness(.62) saturate(.72)' : period === 'dusk' ? 'brightness(.86) sepia(.1) saturate(.92)' : period === 'dawn' ? 'brightness(.96) sepia(.07)' : weather.obscuresMoon ? 'brightness(.90) saturate(.92)' : 'none';
-  const heavyCloud = weather.obscuresMoon || weather.precipitation !== 'none';
-  const skyImage = heavyCloud ? art('overcast-sky') : period === 'night' ? art('night-sky') : period === 'dawn' || period === 'dusk' ? art(`${period}-sky`) : weather.cloudCover < 35 ? art('clear-sky') : '/art/cloud-sky.png';
-  const skyFilter = heavyCloud ? period === 'night' ? 'brightness(.16) saturate(.4)' : period === 'dusk' ? 'brightness(.55) sepia(.12)' : period === 'dawn' ? 'brightness(.78) sepia(.10)' : 'none' : 'none';
+  const atmosphere = resolveAtmosphere(sky, weather, times.has(preview.time) || !sky ? period : undefined);
+  const landscapeFilter = [atmosphere.landscapeFilter, foliage.filter].filter(filter => filter !== 'none').join(' ');
+  const figureFilter = atmosphere.figureFilter;
+  const cloudImage = art(atmosphere.fullOvercast ? 'clouds-overcast' : 'clouds-isolated');
+  const landscapeMask = `/art/environments/masks/${['winter', 'snow', 'snow-patchy-dormant'].includes(plate) ? 'dormant' : 'leafy'}.svg`;
   const temperature = fresh ? ` · ${Math.round(fresh.temperatureC)}°C` : '';
-  const phase = period === 'night' && moonSky ? ` · ${moonSky.phaseName.toLowerCase()}${!isPreview && !moonSky.moonAboveHorizon ? ' below the horizon' : weather.obscuresMoon ? ' behind clouds' : ''}` : '';
+  const phase = period === 'night' && moonSky ? ` · ${moonSky.phaseName.toLowerCase()}${!isPreview && !moonSky.moonAboveHorizon ? ' below the horizon' : atmosphere.fullOvercast ? ' behind clouds' : ''}` : '';
   const description = `${isPreview ? 'Preview · ' : ''}${period[0].toUpperCase() + period.slice(1)} · ${foliage.label.toLowerCase()} · ${weather.label.toLowerCase()}${temperature}${phase}`;
-  return { enabled, period, season, foliage, ground, weather, sky: moonSky, moonOpacity: enabled && moonSky ? getMoonOpacity(moonSky, weather) : 0, landscape: enabled ? art(plate) : '/art/landscape-wide.png', skyImage: enabled ? skyImage : '/art/cloud-sky.png', skyFilter:enabled?skyFilter:'none', landscapeFilter: enabled ? landscapeFilter.trim().replace(/^none /, '') : 'none', figureFilter: enabled ? figureFilter : 'none', windSpeedKmh: fresh?.windSpeedKmh ?? 6, windDirectionDeg: fresh?.windDirectionDeg ?? 250, description, preview: isPreview };
+  return { enabled, period, season, foliage, ground, weather, sky: moonSky, moonOpacity: enabled && moonSky && !atmosphere.fullOvercast ? getMoonOpacity(moonSky, weather) : 0, landscape: enabled ? art(plate) : '/art/landscape-wide.png', landscapeMask: enabled ? landscapeMask : '/art/landscape-foreground-mask-v2.svg', cloudImage, atmosphere, landscapeFilter: enabled ? landscapeFilter.trim().replace(/^none /, '') : 'none', figureFilter: enabled ? figureFilter : 'none', windSpeedKmh: fresh?.windSpeedKmh ?? 6, windDirectionDeg: fresh?.windDirectionDeg ?? 250, description, preview: isPreview };
 }
