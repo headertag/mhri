@@ -116,6 +116,11 @@ function weatherFrom(data, now) {
     const value = data.daily?.[name]?.[0];
     return typeof value === 'number' && value > 0 ? iso(value) : null;
   };
+  // Ground snow is an instantaneous modeled depth, not the recent snowfall sum.
+  // Missing coverage or invalid units must not discard otherwise valid weather.
+  const snowDepthM = data.current_units?.snow_depth === 'm'
+    && typeof c.snow_depth === 'number' && Number.isFinite(c.snow_depth)
+    && c.snow_depth >= 0 && c.snow_depth <= 100 ? c.snow_depth : null;
   return {
     weather: {
       observedAt,
@@ -125,6 +130,7 @@ function weatherFrom(data, now) {
       precipitationMm: finite(c.precipitation, 0, 1000),
       rainMm: finite(c.rain, 0, 1000),
       snowfallCm: finite(c.snowfall, 0, 1000),
+      snowDepthM,
       windSpeedKmh: finite(c.wind_speed_10m, 0, 500),
       windDirectionDeg: finite(c.wind_direction_10m, 0, 360),
       isDay: c.is_day === 1,
@@ -310,7 +316,7 @@ export function createEnvironmentService({ fetchImpl = fetch, now = Date.now, ti
         const url = new URL(weatherApiKey ? 'https://customer-api.open-meteo.com/v1/forecast' : 'https://api.open-meteo.com/v1/forecast');
         url.search = new URLSearchParams({
           latitude: String(location.latitude), longitude: String(location.longitude), timezone: location.timeZone,
-          current: 'temperature_2m,is_day,precipitation,rain,snowfall,weather_code,cloud_cover,wind_speed_10m,wind_direction_10m',
+          current: 'temperature_2m,is_day,precipitation,rain,snowfall,snow_depth,weather_code,cloud_cover,wind_speed_10m,wind_direction_10m',
           daily: 'sunrise,sunset', forecast_days: '1', timeformat: 'unixtime',
           temperature_unit: 'celsius', wind_speed_unit: 'kmh', precipitation_unit: 'mm',
           ...(weatherApiKey ? { apikey: weatherApiKey } : {}),

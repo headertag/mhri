@@ -99,6 +99,30 @@
       "sha256": "bc9d4ec43b05119d606e63d6f0f6b60464a25ec3f28e70af6ef854ae97c71aec"
     },
     {
+      "id": "snow-evergreen",
+      "src": "/art/environments/snow-evergreen.webp",
+      "width": 1774,
+      "height": 887,
+      "bytes": 434788,
+      "sha256": "525f51b6508596e327a945dfb6c806bbb3d4ef547b2e5a04faf2e34351230275"
+    },
+    {
+      "id": "snow-patchy",
+      "src": "/art/environments/snow-patchy.webp",
+      "width": 1774,
+      "height": 887,
+      "bytes": 420950,
+      "sha256": "d4cec665c6319c5f9c777bf1ef81975bda0d9f129baf1b43e0e5e83edc5cc125"
+    },
+    {
+      "id": "snow-patchy-dormant",
+      "src": "/art/environments/snow-patchy-dormant.webp",
+      "width": 1774,
+      "height": 887,
+      "bytes": 366546,
+      "sha256": "ef9fed9fc73e166d9fc068dd93c352e79bc3027c4182895987a3fe0c3cea5489"
+    },
+    {
       "id": "spring",
       "src": "/art/environments/spring.webp",
       "width": 1774,

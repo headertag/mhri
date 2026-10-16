@@ -2,15 +2,17 @@ import { useEffect, useState } from 'react';
 import { Switch } from '@/components/ui/switch';
 import { validPlace, type Place, type useEnvironment } from './environment';
 import type { FoliageState } from './scene-foliage';
+import type { GroundState } from './scene-ground';
 
-export type ScenePreview = { time: string; weather: string; season: string };
-export const LIVE_PREVIEW: ScenePreview = { time: 'auto', weather: 'auto', season: 'auto' };
+export type ScenePreview = { time: string; weather: string; season: string; ground?: string };
+export const LIVE_PREVIEW: ScenePreview = { time: 'auto', weather: 'auto', season: 'auto', ground: 'auto' };
 
-export function EnvironmentSettings({ enabled, onEnabled, environment, preview, onPreview, description, foliage }: {
+export function EnvironmentSettings({ enabled, onEnabled, environment, preview, onPreview, description, foliage, ground }: {
   enabled: boolean; onEnabled: (value: boolean) => void;
   environment: ReturnType<typeof useEnvironment>;
   preview: ScenePreview; onPreview: (value: ScenePreview) => void; description: string;
   foliage: FoliageState;
+  ground: GroundState;
 }) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Place[]>([]);
@@ -45,6 +47,8 @@ export function EnvironmentSettings({ enabled, onEnabled, environment, preview, 
         <span>{localTime}{data?.location ? ` · ${data.location.timeZone.replaceAll('_', ' ')}` : ''}</span>
         <span>{description}</span>
         <p>{foliage.reason}</p>
+        <span>{ground.label}{ground.snowDepthM !== null ? ` · modeled depth ${ground.snowDepthM < 1 ? `${+(ground.snowDepthM * 100).toFixed(1)} cm` : `${+ground.snowDepthM.toFixed(2)} m`}` : ''}</span>
+        <p>{ground.source === 'preview' ? 'Ground cover preview is separate from falling snow.' : ground.state === 'unknown' ? 'Ground snow data is unavailable; season and falling flakes do not imply settled snow.' : 'Ground cover follows modeled snow depth, independently of falling snow.'}</p>
         {(error || data?.status !== 'live') && !loading && <p>Live weather is unavailable. {data?.location ? 'Local daylight and moon calculations remain active.' : 'The scene follows your device clock until a location is available.'} <button type="button" onClick={environment.retry}>Retry</button></p>}
       </div>
       <details className="scene-options">
@@ -65,7 +69,8 @@ export function EnvironmentSettings({ enabled, onEnabled, environment, preview, 
         <label className="preview-control">Time of day<select aria-label="Preview time of day" value={preview.time} onChange={e => onPreview({ ...preview, time: e.target.value })}><option value="auto">Automatic</option><option value="dawn">Dawn</option><option value="day">Day</option><option value="dusk">Dusk</option><option value="night">Night</option></select></label>
         <label className="preview-control">Weather<select aria-label="Preview weather" value={preview.weather} onChange={e => onPreview({ ...preview, weather: e.target.value })}><option value="auto">Automatic</option><option value="clear">Clear</option><option value="cloudy">Partly cloudy</option><option value="overcast">Overcast</option><option value="rain">Rain</option><option value="snow">Snow</option><option value="fog">Mist & fog</option><option value="thunderstorm">Storm</option></select></label>
         <label className="preview-control">Season<select aria-label="Preview season" value={preview.season} onChange={e => onPreview({ ...preview, season: e.target.value })}><option value="auto">Automatic</option><option value="spring">Spring</option><option value="summer">Summer</option><option value="autumn">Autumn</option><option value="winter">Winter</option></select></label>
-        {(preview.time !== 'auto' || preview.weather !== 'auto' || preview.season !== 'auto') && <button type="button" className="text-button" onClick={() => onPreview(LIVE_PREVIEW)}>Return to local conditions</button>}
+        <label className="preview-control">Ground snow<select aria-label="Preview ground snow" value={preview.ground || 'auto'} onChange={e => onPreview({ ...preview, ground: e.target.value })}><option value="auto">Automatic</option><option value="bare">Bare ground</option><option value="patchy">Patchy snow</option><option value="covered">Snow-covered</option></select></label>
+        {(preview.time !== 'auto' || preview.weather !== 'auto' || preview.season !== 'auto' || (preview.ground && preview.ground !== 'auto')) && <button type="button" className="text-button" onClick={() => onPreview(LIVE_PREVIEW)}>Return to local conditions</button>}
       </details>
       <p className="environment-note">Approximate IP location: <a href="https://ipwhois.io/" target="_blank" rel="noreferrer">IPWhois</a>. Modeled weather: <a href="https://open-meteo.com/" target="_blank" rel="noreferrer">Open-Meteo</a> (CC BY 4.0). Cities: <a href="https://www.geonames.org/" target="_blank" rel="noreferrer">GeoNames</a>. Climate: <a href="https://doi.org/10.6084/m9.figshare.21789074.v2" target="_blank" rel="noreferrer">Beck et al.</a> (CC BY 4.0; adapted for foliage). Your IP is used for the lookup, never shown or saved by this application. No GPS access.</p>
     </>}

@@ -2,12 +2,14 @@ import { classifyWeather, getMoonOpacity, getSeason, getSkyState, type Season, t
 import type { Environment } from './environment';
 import type { ScenePreview } from './environment-settings';
 import { resolveFoliage, type FoliageState } from './scene-foliage.ts';
+import { resolveGround, type GroundState } from './scene-ground.ts';
 
 export interface SceneEnvironment {
   enabled: boolean;
   period: SkyPeriod;
   season: Season;
   foliage: FoliageState;
+  ground: GroundState;
   weather: WeatherState;
   sky: SkyState | null;
   moonOpacity: number;
@@ -32,7 +34,7 @@ function clockPeriod(now: Date, timeZone?: string): SkyPeriod {
   return hour >= 7 && hour < 18 ? 'day' : hour >= 5 && hour < 7 ? 'dawn' : hour >= 18 && hour < 20 ? 'dusk' : 'night';
 }
 
-/** Time, season and weather stay independent; winter alone never implies falling snow. */
+/** Time, foliage, ground cover and precipitation stay independent. */
 export function resolveScene(enabled: boolean, data: Environment | null, now: Date, preview: ScenePreview): SceneEnvironment {
   const location = data?.location;
   const sky = location ? getSkyState(now, location.latitude, location.longitude) : null;
@@ -46,14 +48,16 @@ export function resolveScene(enabled: boolean, data: Environment | null, now: Da
   } : automaticFoliage;
   const fresh = data?.weather && Math.abs(now.getTime() - Date.parse(data.weather.observedAt)) < 3 * 60 * 60_000 ? data.weather : null;
   const weather = preview.weather in weatherCodes ? classifyWeather(weatherCodes[preview.weather]) : fresh ? classifyWeather(fresh.weatherCode, fresh.cloudCover) : classifyWeather(-1, 40);
-  const isPreview = times.has(preview.time) || seasons.has(preview.season) || preview.weather in weatherCodes;
+  const ground = resolveGround(now, data, preview.weather, preview.ground);
+  const isPreview = times.has(preview.time) || seasons.has(preview.season) || preview.weather in weatherCodes || ground.source === 'preview';
   // Previewing night preserves today's phase but places it at a demonstration altitude.
   // Live mode never shows a moon that is below the observer's horizon.
   const moonSky = preview.time === 'night'
     ? { ...(sky || getSkyState(now, 0, 0)), period: 'night' as const, moonAltitude: 40, moonAboveHorizon: true }
     : sky ? { ...sky, period } : null;
   let plate: string = foliage.landscape;
-  if (weather.precipitation === 'snow') plate = 'snow';
+  if (ground.state === 'covered') plate = foliage.state === 'autumn' || foliage.state === 'dormant' ? 'snow' : 'snow-evergreen';
+  else if (ground.state === 'patchy') plate = foliage.state === 'autumn' || foliage.state === 'dormant' ? 'snow-patchy-dormant' : 'snow-patchy';
   else if (weather.precipitation === 'rain' || weather.precipitation === 'hail') {
     // A single rain shower must not replace dry, autumn or dormant vegetation.
     if (foliage.state === 'green') plate = 'rain';
@@ -74,5 +78,5 @@ export function resolveScene(enabled: boolean, data: Environment | null, now: Da
   const temperature = fresh ? ` · ${Math.round(fresh.temperatureC)}°C` : '';
   const phase = period === 'night' && moonSky ? ` · ${moonSky.phaseName.toLowerCase()}${!isPreview && !moonSky.moonAboveHorizon ? ' below the horizon' : weather.obscuresMoon ? ' behind clouds' : ''}` : '';
   const description = `${isPreview ? 'Preview · ' : ''}${period[0].toUpperCase() + period.slice(1)} · ${foliage.label.toLowerCase()} · ${weather.label.toLowerCase()}${temperature}${phase}`;
-  return { enabled, period, season, foliage, weather, sky: moonSky, moonOpacity: enabled && moonSky ? getMoonOpacity(moonSky, weather) : 0, landscape: enabled ? art(plate) : '/art/landscape-wide.png', skyImage: enabled ? skyImage : '/art/cloud-sky.png', skyFilter:enabled?skyFilter:'none', landscapeFilter: enabled ? landscapeFilter.trim().replace(/^none /, '') : 'none', figureFilter: enabled ? figureFilter : 'none', windSpeedKmh: fresh?.windSpeedKmh ?? 6, windDirectionDeg: fresh?.windDirectionDeg ?? 250, description, preview: isPreview };
+  return { enabled, period, season, foliage, ground, weather, sky: moonSky, moonOpacity: enabled && moonSky ? getMoonOpacity(moonSky, weather) : 0, landscape: enabled ? art(plate) : '/art/landscape-wide.png', skyImage: enabled ? skyImage : '/art/cloud-sky.png', skyFilter:enabled?skyFilter:'none', landscapeFilter: enabled ? landscapeFilter.trim().replace(/^none /, '') : 'none', figureFilter: enabled ? figureFilter : 'none', windSpeedKmh: fresh?.windSpeedKmh ?? 6, windDirectionDeg: fresh?.windDirectionDeg ?? 250, description, preview: isPreview };
 }

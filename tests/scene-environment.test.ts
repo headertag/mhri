@@ -20,7 +20,7 @@ test('winter does not invent snow and precipitation remains independent of seaso
   const winter = resolveScene(true,make(),date,{time:'day',weather:'clear',season:'winter'});
   assert.match(winter.landscape,/winter.webp/); assert.equal(winter.weather.precipitation,'none');
   const snow = resolveScene(true,make(),date,{time:'night',weather:'snow',season:'spring'});
-  assert.match(snow.landscape,/snow.webp/); assert.equal(snow.weather.precipitation,'snow');
+  assert.match(snow.landscape,/snow-evergreen.webp/); assert.equal(snow.weather.precipitation,'snow');
   assert.match(snow.landscapeFilter,/brightness/);
   const winterRain = resolveScene(true,make(),date,{time:'day',weather:'rain',season:'winter'});
   assert.match(winterRain.landscape,/winter.webp/); assert.equal(winterRain.weather.precipitation,'rain');
@@ -59,8 +59,8 @@ test('no IP location does not invent a horizon-visible moon; manual preview is l
   assert.equal(preview.sky?.moonAltitude,40);
 });
 test('all supported combinations resolve to available assets and finite visibility', () => {
-  for (const time of ['dawn','day','dusk','night']) for (const weather of ['clear','cloudy','overcast','rain','snow','fog','thunderstorm']) for (const season of ['spring','summer','autumn','winter']) {
-    const scene=resolveScene(true,make(),date,{time,weather,season});
+  for (const time of ['dawn','day','dusk','night']) for (const weather of ['clear','cloudy','overcast','rain','snow','fog','thunderstorm']) for (const season of ['spring','summer','autumn','winter']) for (const ground of ['auto','bare','patchy','covered']) {
+    const scene=resolveScene(true,make(),date,{time,weather,season,ground});
     assert.ok(existsSync(new URL(`../public${scene.landscape}`,import.meta.url)),scene.landscape);
     assert.ok(existsSync(new URL(`../public${scene.skyImage}`,import.meta.url)),scene.skyImage);
     assert.ok(scene.moonOpacity>=0&&scene.moonOpacity<=1);
@@ -115,4 +115,61 @@ test('a history-only outage retains same-location context while accepting new li
   assert.equal(mergeEnvironment(previous,changed).climateHistory,null);
   assert.equal(retainLocation(previous,null).climate,previous.climate);
   assert.equal(retainLocation(previous,{id:1,name:'Los Angeles',latitude:34.1,longitude:-118.2,timeZone:'America/Los_Angeles'}).climateHistory,null);
+});
+
+test('settled snow selects ground artwork without inventing flakes or overcast skies', () => {
+  const env=make(-77.8,166.7,'Antarctica/McMurdo');env.climate=getClimate(-77.8,166.7);
+  env.weather!.snowDepthM=2.99;
+  const scene=resolveScene(true,env,date,auto);
+  assert.equal(scene.ground.state,'covered');assert.equal(scene.ground.source,'modeled-depth');
+  assert.equal(scene.weather.precipitation,'none');assert.equal(scene.weather.cloudCover,0);
+  assert.match(scene.landscape,/snow.webp/);assert.doesNotMatch(scene.skyImage,/overcast/);
+  const night=resolveScene(true,env,date,{...auto,time:'night'});
+  assert.match(night.landscape,/snow.webp/);assert.match(night.skyImage,/night-sky/);
+  assert.match(night.landscapeFilter,/brightness/);
+});
+
+test('ground snow follows depth independently of leaf state, a warm reading or rainfall', () => {
+  const env=make();env.weather!.snowDepthM=.08;env.weather!.temperatureC=6;
+  const summer=resolveScene(true,env,date,{...auto,time:'day',season:'summer'});
+  assert.equal(summer.foliage.state,'green');assert.match(summer.landscape,/snow-evergreen.webp/);
+  const rain=resolveScene(true,env,date,{...auto,time:'day',season:'summer',weather:'rain'});
+  assert.match(rain.landscape,/snow-evergreen.webp/);assert.equal(rain.weather.precipitation,'rain');
+  env.weather!.snowDepthM=.02;
+  assert.match(resolveScene(true,env,date,{...auto,season:'summer'}).landscape,/snow-patchy.webp/);
+  assert.match(resolveScene(true,env,date,{...auto,season:'winter'}).landscape,/snow-patchy-dormant.webp/);
+  env.weather!.snowDepthM=0;
+  assert.doesNotMatch(resolveScene(true,env,date,{...auto,season:'winter'}).landscape,/snow/);
+});
+
+test('flakes with zero or unavailable snow depth leave ordinary ground visible', () => {
+  const env=make();env.weather!.weatherCode=73;env.weather!.cloudCover=100;
+  for (const depth of [0,null,undefined]) {
+    env.weather!.snowDepthM=depth;
+    const scene=resolveScene(true,env,date,{...auto,time:'day',season:'winter'});
+    assert.equal(scene.weather.precipitation,'snow');
+    assert.equal(scene.ground.state,depth === 0 ? 'bare' : 'unknown');
+    assert.match(scene.landscape,/winter.webp/);
+  }
+});
+
+test('explicit ground previews override snow weather and reset cleanly to local conditions', () => {
+  const env=make();env.weather!.snowDepthM=0;
+  const clearPack=resolveScene(true,env,date,{...auto,time:'day',weather:'clear',ground:'covered'});
+  assert.equal(clearPack.preview,true);assert.equal(clearPack.ground.source,'preview');
+  assert.match(clearPack.landscape,/snow/);assert.equal(clearPack.weather.precipitation,'none');
+  const flakesOnly=resolveScene(true,env,date,{...auto,weather:'snow',ground:'bare'});
+  assert.equal(flakesOnly.ground.state,'bare');assert.equal(flakesOnly.weather.precipitation,'snow');
+  assert.doesNotMatch(flakesOnly.landscape,/snow/);
+  assert.equal(resolveScene(true,env,date,auto).ground.source,'modeled-depth');
+  assert.equal(resolveScene(true,env,date,auto).preview,false);
+});
+
+test('new current observations never inherit old snow depth and stale pack is not reused', () => {
+  const previous=make();previous.weather!.snowDepthM=.7;
+  const incoming=make();incoming.weather!.snowDepthM=null;
+  assert.equal(mergeEnvironment(previous,incoming).weather!.snowDepthM,null);
+  assert.equal(resolveScene(true,mergeEnvironment(previous,incoming),date,auto).ground.state,'unknown');
+  const stale=resolveScene(true,previous,new Date(date.getTime()+4*3600000),auto);
+  assert.equal(stale.ground.state,'unknown');assert.doesNotMatch(stale.landscape,/snow/);
 });

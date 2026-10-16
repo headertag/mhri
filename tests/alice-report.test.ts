@@ -14,15 +14,18 @@ test('public ALICE report excludes private artifact URLs and credentials, and es
     screenshotUrl:'https://storage.invalid/private.jpg?signature=never-public',
     error:'Bearer test-credential-redacted URL https://storage.invalid/?signature=never-public IP 192.0.2.1 2001:db8::abcd',
     sidecar:{token:'sidecar-secret'},
-    capture:{environment:{location:{city:'<img src=x onerror=alert(1)>',countryCode:'US',timeZone:'America/New_York',ip:'192.0.2.2'}},localTime:'2026-10-16 02:30:01'}
+    capture:{environment:{location:{city:'<img src=x onerror=alert(1)>',countryCode:'US',timeZone:'America/New_York',ip:'192.0.2.2'},weather:{snowDepthM:0}},scene:{ground:{state:'bare',snowDepthM:0,source:'modeled-depth',label:'No modeled ground snow',token:'ground-secret'}},localTime:'2026-10-16 02:30:01'}
   }] },dir);
   const html = await readFile(join(dir,'index.html'),'utf8');
   const json = await readFile(join(dir,'report.json'),'utf8');
-  for (const value of ['test-credential-redacted','never-public','sidecar-secret','192.0.2.1','192.0.2.2','2001:db8::1234','2001:db8::abcd','private-query']) { assert.ok(!html.includes(value),value);assert.ok(!json.includes(value),value); }
+  for (const value of ['test-credential-redacted','never-public','sidecar-secret','ground-secret','192.0.2.1','192.0.2.2','2001:db8::1234','2001:db8::abcd','private-query']) { assert.ok(!html.includes(value),value);assert.ok(!json.includes(value),value); }
   assert.ok(html.includes('&lt;img src=x onerror=alert(1)&gt;'));
   assert.ok(!html.includes('<img src=x onerror=alert(1)>'));
   assert.equal(report.results[0].screenshot,null);
   assert.equal(report.results[0].capture.localTime,'2026-10-16 02:30:01');
+  assert.equal(report.results[0].capture.ground.snowDepthM,0);
+  assert.equal(report.results[0].capture.weather.snowDepthM,0);
+  assert.equal(report.results[0].capture.ground.source,'modeled-depth');
   assert.match(html,/\$0\.20/);assert.doesNotMatch(html,/captures\/min/);
 });
 

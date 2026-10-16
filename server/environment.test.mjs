@@ -89,6 +89,64 @@ test('heavy thunderstorm WMO code 97 remains a valid live observation', async ()
   assert.equal(result.weather.weatherCode, 97);
 });
 
+test('instantaneous snow depth is separate from snowfall and preserves valid zero and deep polar snow', async () => {
+  for (const depth of [0, 0.02, 2.99, 20.44, 100]) {
+    const weather = { ...WEATHER, current_units: { snow_depth: 'm' },
+      current: { ...WEATHER.current, snowfall: 0, precipitation: 0, rain: 0, weather_code: 1, snow_depth: depth } };
+    const provider = mockProvider({ weather });
+    const result = await make(provider).get(null, manual());
+    assert.equal(result.status, 'live');
+    assert.equal(result.weather.snowDepthM, depth);
+    assert.equal(result.weather.snowfallCm, 0);
+    assert.equal(result.weather.weatherCode, 1);
+    assert.ok(provider.calls[0].url.searchParams.get('current').split(',').includes('snow_depth'));
+    assert.equal(provider.calls[0].url.searchParams.get('current').split(',').length, 10);
+  }
+  const weather = { ...WEATHER, current_units: { snow_depth: 'm' },
+    current: { ...WEATHER.current, snowfall: 0.4, snow_depth: 0, weather_code: 71 } };
+  const result = await make(mockProvider({ weather })).get(null, manual());
+  assert.equal(result.weather.snowDepthM, 0, 'fresh snowfall does not override a reported zero ground depth');
+  assert.equal(result.weather.snowfallCm, 0.4);
+});
+
+test('absent or invalid snow depth is null without suppressing otherwise live weather', async () => {
+  for (const [snow_depth, unit] of [
+    [undefined, 'm'], [null, 'm'], [-0.01, 'm'], [100.01, 'm'], ['0.3', 'm'], [true, 'm'],
+    [Number.NaN, 'm'], [Infinity, 'm'], [0.3, undefined], [0.3, 'cm'], [0.3, 'inch'], [0, 'cm'],
+  ]) {
+    const weather = { ...WEATHER, current_units: { snow_depth: unit }, current: { ...WEATHER.current, snow_depth } };
+    const result = await make(mockProvider({ weather })).get(null, manual());
+    assert.equal(result.status, 'live');
+    assert.equal(result.weather.snowDepthM, null);
+    assert.equal(result.weather.temperatureC, WEATHER.current.temperature_2m);
+  }
+  const withoutUnits = { ...WEATHER, current: { ...WEATHER.current, snow_depth: 0.3 } };
+  assert.equal((await make(mockProvider({ weather: withoutUnits })).get(null, manual())).weather.snowDepthM, null);
+});
+
+test('new current observations do not carry old snow depth or infer it from multi-week snowfall', async () => {
+  let clock = NOW;
+  let depth = 0.35;
+  const history = historyFixture();
+  history.daily.snowfall_sum.fill(2);
+  const service = createEnvironmentService({ now: () => clock, fetchImpl: async url => Response.json(
+    url.searchParams.has('past_days') ? history : { ...WEATHER, current_units: { snow_depth: 'm' },
+      current: { ...WEATHER.current, time: clock / 1000, snow_depth: depth } },
+  ) });
+  assert.equal((await service.get(null, manual())).weather.snowDepthM, 0.35);
+  clock += 11 * 60_000;
+  depth = undefined;
+  const missing = await service.get(null, manual());
+  assert.equal(missing.status, 'live');
+  assert.equal(missing.weather.snowDepthM, null);
+  assert.equal(missing.climateHistory.snowfallCm, 56);
+  clock += 11 * 60_000;
+  depth = 0;
+  const bare = await service.get(null, manual());
+  assert.equal(bare.weather.snowDepthM, 0);
+  assert.equal(bare.climateHistory.snowfallCm, 56);
+});
+
 test('cache deduplicates concurrent lookups and shares coarse weather cells without sharing city labels', async () => {
   const provider = mockProvider();
   const service = make(provider);

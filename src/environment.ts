@@ -14,7 +14,7 @@ export interface Environment {
   version: 1;
   status: 'live' | 'location-only' | 'unavailable';
   location: { latitude: number; longitude: number; timeZone: string; city: string | null; countryCode: string | null; approximate: true; source?: 'ip' | 'city' } | null;
-  weather: { observedAt: string; temperatureC: number; weatherCode: number; cloudCover: number; precipitationMm: number; rainMm: number; snowfallCm: number; windSpeedKmh: number; windDirectionDeg: number; isDay: boolean } | null;
+  weather: { observedAt: string; temperatureC: number; weatherCode: number; cloudCover: number; precipitationMm: number; rainMm: number; snowfallCm: number; snowDepthM?: number | null; windSpeedKmh: number; windDirectionDeg: number; isDay: boolean } | null;
   sun: { sunrise: string | null; sunset: string | null } | null;
   fetchedAt: string;
   climate?: ClimateProfile | null;

@@ -94,6 +94,7 @@ export function AliceCapture({ runId, appReady, environment, environmentLoading,
         weatherCode: environment.weather.weatherCode,
         cloudCover: environment.weather.cloudCover,
         temperatureC: environment.weather.temperatureC,
+        snowDepthM: environment.weather.snowDepthM ?? null,
         windSpeedKmh: environment.weather.windSpeedKmh,
         windDirectionDeg: environment.weather.windDirectionDeg,
       } : null,
@@ -108,6 +109,7 @@ export function AliceCapture({ runId, appReady, environment, environmentLoading,
       period: scene.period,
       season: scene.season,
       foliage: scene.foliage,
+      ground: scene.ground,
       weather: scene.weather.kind,
       weatherLabel: scene.weather.label,
       cloudCover: scene.weather.cloudCover,
@@ -141,6 +143,7 @@ export function AliceCapture({ runId, appReady, environment, environmentLoading,
       <dt>Data</dt><dd>{environment?.status || 'loading'}{environmentError ? ' · request failed' : ''}</dd>
       <dt>Scene</dt><dd>{scene.period} · {scene.foliage.label.toLowerCase()} · {scene.weather.label.toLowerCase()}</dd>
       <dt>Climate</dt><dd>{environment?.climate?.koppenCode || 'Unmapped'} · {scene.foliage.confidence}</dd>
+      <dt>Ground</dt><dd>{scene.ground.label}{scene.ground.snowDepthM !== null ? ` · ${scene.ground.snowDepthM} m modeled snow` : ''}</dd>
       <dt>Moon</dt><dd>{scene.sky?.phaseName || 'Not calculated'} · {moonVisibility}</dd>
       <dt>Device</dt><dd>{device.width} × {device.height} · DPR {device.dpr}</dd>
     </dl>

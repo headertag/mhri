@@ -64,6 +64,7 @@ function summarizeCapture(input) {
   const weather = object(capture.weather ?? environment.weather);
   const scene = object(capture.scene);
   const foliage = object(scene.foliage);
+  const ground = object(scene.ground);
   const climate = object(environment.climate);
   const viewport = object(capture.viewport);
   const zone = timeZone(location.timeZone ?? location.timezone ?? capture.timeZone ?? capture.timezone);
@@ -83,6 +84,7 @@ function summarizeCapture(input) {
     environmentStatus: text(environment.status ?? capture.environmentStatus, 40),
     environmentReason: text(environment.reason, 100),
     foliage: { state: text(foliage.state, 30), label: text(foliage.label, 100), confidence: text(foliage.confidence, 40), reason: text(foliage.reason, 400) },
+    ground: { state: text(ground.state, 30), label: text(ground.label, 100), snowDepthM: number(ground.snowDepthM), source: text(ground.source, 40) },
     climate: { koppenCode: text(climate.koppenCode, 8), group: text(climate.group, 40), confidence: text(climate.confidence, 20) },
     locationSource: ['ip', 'city'].includes(location.source) ? location.source : null,
     weather: {
@@ -92,6 +94,7 @@ function summarizeCapture(input) {
       cloudCover: number(weather.cloudCover ?? capture.cloudCover),
       observedAt: date(weather.observedAt),
       windSpeedKmh: number(weather.windSpeedKmh),
+      snowDepthM: number(weather.snowDepthM),
     },
     moon: { phaseName: text(scene.phaseName, 40), illumination: number(scene.illumination), visible: typeof scene.moonVisible === 'boolean' ? scene.moonVisible : null },
     viewport: { width: number(viewport.width), height: number(viewport.height) },
