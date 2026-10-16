@@ -8,6 +8,8 @@ import { WeatherEffects } from './weather-effects';
 import type { SceneEnvironment } from './scene-environment';
 import './environment.css';
 
+export type SceneLoadState = {status: 'loading' | 'ready' | 'error'; scene: SceneEnvironment | null};
+
 // Display masks only. Every visible subject pixel comes from the supplied artwork.
 // Trace the wool, grip and tunic hem independently of the staff: the spaces
 // between them must stay transparent, including the notch above the right ankle.
@@ -18,7 +20,7 @@ const staff = 'M 480 1117 L 496 1060 L 610 647 L 646 551 L 675 450 L 703 349 L 7
 // Only the visible painted arc, never a broad ring of the old sky.
 const halo = 'M 357 110 C 369 79 400 64 433 64 C 474 62 507 92 515 132 L 517 147';
 
-export function Artwork({ motion, original, depth, focus, cloudSpeed, neuromancer, signalMotion, scene: requestedScene }: {motion:boolean;original:boolean;depth:number;focus:boolean;cloudSpeed:number;neuromancer:boolean;signalMotion:boolean;scene:SceneEnvironment}) {
+export function Artwork({ motion, original, depth, focus, cloudSpeed, neuromancer, signalMotion, scene: requestedScene, onSceneState }: {motion:boolean;original:boolean;depth:number;focus:boolean;cloudSpeed:number;neuromancer:boolean;signalMotion:boolean;scene:SceneEnvironment;onSceneState?:(state:SceneLoadState)=>void}) {
   const root = useRef<HTMLDivElement>(null);
   const environment = useRef<HTMLImageElement>(null);
   const shadow = useRef<HTMLCanvasElement>(null);
@@ -26,17 +28,20 @@ export function Artwork({ motion, original, depth, focus, cloudSpeed, neuromance
   const speed = useRef(cloudSpeed);
   const [meshReady,setMeshReady]=useState(false);
   const [scene, setScene] = useState<SceneEnvironment>(() => ({ ...requestedScene, enabled: false, landscape:'/art/landscape-wide.png',skyImage:'/art/cloud-sky.png',landscapeFilter:'none',skyFilter:'none',figureFilter:'none',moonOpacity:0 }));
+  const [sceneStatus, setSceneStatus] = useState<SceneLoadState['status']>('loading');
   const plates = scene;
   useEffect(() => {
     let active = true;
+    setSceneStatus('loading');
     const load = (src:string) => { const img = new Image(); img.src = src; return img.decode(); };
-    Promise.all([load(requestedScene.landscape), load(requestedScene.skyImage)]).then(() => {
+    Promise.all([load(requestedScene.landscape), load(requestedScene.skyImage), load('/art/le-bon-pasteur.png')]).then(() => {
       // Commit all layers together: the moon, figure lighting and weather must
       // never get ahead of their background on a slow connection.
-      if (active) setScene(requestedScene);
-    }).catch(() => { /* Retain the last complete scene if a connection or image fails. */ });
+      if (active) { setScene(requestedScene); setSceneStatus('ready'); }
+    }).catch(() => { if (active) setSceneStatus('error'); /* Retain the last complete scene if an image fails. */ });
     return () => { active = false; };
   }, [requestedScene]);
+  useEffect(() => { onSceneState?.({status:sceneStatus, scene:sceneStatus==='ready'?scene:null}); }, [onSceneState,sceneStatus,scene]);
   useEffect(()=>{speed.current=cloudSpeed;},[cloudSpeed]);
   useEffect(() => {
     const el=root.current;

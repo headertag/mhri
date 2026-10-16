@@ -36,17 +36,18 @@ export function retainLocation(previous: Environment | null, place: Place | null
     weather: null, sun: null, fetchedAt: new Date().toISOString(), reason: 'weather-unavailable' };
 }
 
-export function useEnvironment(enabled: boolean) {
-  const [place, setPlace] = useState<Place | null>(savedPlace);
+export function useEnvironment(enabled: boolean, { captureMode = false }: {captureMode?: boolean} = {}) {
+  const [place, setPlace] = useState<Place | null>(() => captureMode ? null : savedPlace());
   const [data, setData] = useState<Environment | null>(() => place ? retainLocation(null, place) : null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
   const [refresh, setRefresh] = useState(0);
   const [now, setNow] = useState(() => new Date());
   const choosePlace = useCallback((next: Place | null) => {
+    if (captureMode) return;
     setPlace(next); setData(next ? retainLocation(null, next) : null); setError(false);
-    try { if (next) localStorage.setItem('mhri-place', JSON.stringify(next)); else localStorage.removeItem('mhri-place'); } catch { /* Private browsing can disable storage. */ }
-  }, []);
+    if (!captureMode) try { if (next) localStorage.setItem('mhri-place', JSON.stringify(next)); else localStorage.removeItem('mhri-place'); } catch { /* Private browsing can disable storage. */ }
+  }, [captureMode]);
   useEffect(() => {
     const tick = () => setNow(new Date());
     const interval = window.setInterval(tick, 60_000);

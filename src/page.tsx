@@ -10,6 +10,7 @@ import { toRomanYear } from './roman-year';
 import { useEnvironment } from './environment';
 import { EnvironmentSettings, LIVE_PREVIEW } from './environment-settings';
 import { resolveScene } from './scene-environment';
+import { AliceCapture, readCaptureId, type CaptureSceneState } from './alice-capture';
 
 const DEFAULT_CLOUD_SPEED = 3;
 
@@ -31,6 +32,9 @@ function Copyright() {
 }
 
 export default function Home() {
+  const [captureId] = useState(readCaptureId);
+  const captureMode = captureId !== null;
+  const [capturedScene, setCapturedScene] = useState<CaptureSceneState>({status:'loading',scene:null});
   const [motion,setMotion]=useState(false);
   const [original,setOriginal]=useState(false);
   const [depth,setDepth]=useState(75);
@@ -42,12 +46,12 @@ export default function Home() {
   const [ready,setReady]=useState(false);
   const [localEnvironment,setLocalEnvironment]=useState(true);
   const [preview,setPreview]=useState(LIVE_PREVIEW);
-  const environment = useEnvironment(ready && localEnvironment && !original);
-  const scene = useMemo(() => resolveScene(localEnvironment, environment.data, environment.now, preview), [localEnvironment, environment.data, environment.now, preview]);
+  const environment = useEnvironment(ready && (captureMode || localEnvironment) && (captureMode || !original), {captureMode});
+  const scene = useMemo(() => resolveScene(captureMode || localEnvironment, environment.data, environment.now, captureMode ? LIVE_PREVIEW : preview), [captureMode, localEnvironment, environment.data, environment.now, preview]);
   useEffect(()=>{
     const mq=matchMedia('(prefers-reduced-motion: reduce)');
     let saved:{motion?:boolean;depth?:number;focus?:boolean;cloudSpeed?:number;cloudSpeedDefault?:number;localEnvironment?:boolean}={};
-    try{saved=JSON.parse(localStorage.getItem('mhri-view')||'{}')||{};}catch{}
+    if(!captureMode)try{saved=JSON.parse(localStorage.getItem('mhri-view')||'{}')||{};}catch{}
     setReduced(mq.matches);setMotion(!mq.matches&&saved.motion!==false);
     if(typeof saved.depth==='number')setDepth(Math.max(0,Math.min(100,saved.depth)));
     if(typeof saved.focus==='boolean')setFocus(saved.focus);
@@ -59,7 +63,7 @@ export default function Home() {
     mq.addEventListener('change',preference);
     return()=>mq.removeEventListener('change',preference);
   },[]);
-  useEffect(()=>{if(ready)try{localStorage.setItem('mhri-view',JSON.stringify({motion,depth,focus,cloudSpeed,cloudSpeedDefault:DEFAULT_CLOUD_SPEED,localEnvironment}));}catch{}},[motion,depth,focus,cloudSpeed,ready,localEnvironment]);
+  useEffect(()=>{if(ready&&!captureMode)try{localStorage.setItem('mhri-view',JSON.stringify({motion,depth,focus,cloudSpeed,cloudSpeedDefault:DEFAULT_CLOUD_SPEED,localEnvironment}));}catch{}},[motion,depth,focus,cloudSpeed,ready,localEnvironment,captureMode]);
   return <main className="sanctuary">
     <h1 className="sr-only">MHRI — Magnifica Humanitas Redemptoris Iesu</h1>
     <svg className="wordmark-effects" width="0" height="0" aria-hidden="true" focusable="false">
@@ -78,7 +82,8 @@ export default function Home() {
         </filter>
       </defs>
     </svg>
-    <Artwork motion={motion} original={original} depth={depth} focus={focus} cloudSpeed={cloudSpeed} neuromancer={neuromancer} signalMotion={motion&&!reduced} scene={scene}/>
+    <Artwork motion={motion} original={captureMode?false:original} depth={depth} focus={focus} cloudSpeed={cloudSpeed} neuromancer={captureMode?false:neuromancer} signalMotion={motion&&!reduced} scene={scene} onSceneState={captureMode?setCapturedScene:undefined}/>
+    {captureId!==null&&<AliceCapture runId={captureId} appReady={ready} environment={environment.data} environmentLoading={environment.loading} environmentError={environment.error} now={environment.now} requestedScene={scene} stagedScene={capturedScene}/>}
     <header className="masthead"><a className="wordmark" href="/" aria-label="MHRI — Magnifica Humanitas Redemptoris Iesu"><span>MHRI</span></a></header>
     <footer className="viewer-footer">
       <Copyright />
