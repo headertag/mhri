@@ -69,6 +69,13 @@ test('invalid provider values, timezone, and stale observations fail closed', as
   }
 });
 
+test('heavy thunderstorm WMO code 97 remains a valid live observation', async () => {
+  const weather = { ...WEATHER, current: { ...WEATHER.current, weather_code: 97 } };
+  const result = await make(mockProvider({ weather })).get('8.8.8.8');
+  assert.equal(result.status, 'live');
+  assert.equal(result.weather.weatherCode, 97);
+});
+
 test('cache deduplicates concurrent lookups and shares coarse weather cells without sharing city labels', async () => {
   const provider = mockProvider();
   const service = make(provider);
