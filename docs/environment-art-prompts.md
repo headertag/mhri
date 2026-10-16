@@ -6,7 +6,7 @@ Created 16 October 2026 using the built-in image generation tool. These are inte
 
 - Landscape edit target: `public/art/landscape-wide.png` (1774 × 887).
 - Sky edit target: `public/art/cloud-sky.png` (1774 × 887); each generated landscape was a secondary palette reference for its sky.
-- Delivery: `public/art/environments/*.webp`, all 1774 × 887 (2:1), WebP quality 88, effort 6. Format conversion used Sharp; no compositing or content changes were performed outside image generation.
+- Delivery: `public/art/environments/*.webp`, all 1774 × 887 (2:1). The initial 14 assets use WebP quality 88, effort 6; the later dry-season addition uses quality 90. Format conversion used Sharp; no compositing or content changes were performed outside image generation.
 - Final files were visually inspected. Original tree placement, shoreline, path and earth contours remain closely aligned. Winter and snow naturally expose twig structure within the original tree positions, so a mask derived from fully leafed trees can retain small sky fragments. Use conservative sky blending for these seasons.
 - Night plates contain no painted moon: lunar phase and occlusion must remain runtime layers.
 - Rain and snow plates contain no falling precipitation; precipitation is a runtime layer.
@@ -71,4 +71,10 @@ Use case: lighting-weather. Asset type: animated SKYSHELL only, panoramic1774x88
 ### clear-sky.webp
 
 Use case: lighting-weather. Asset type: animated SKYSHELL only, panoramic1774x887pixels (2:1). Image1 is EDITTARGET original cloud-onlysky; Image2 is palette/lightreference matching landscape. Fill the ENTIRE image with sky, including lower part. Absolutely NO land, trees, water, skyline, horizon line, people, creatures, sun, moon, symbols, text, logos. Keep a classical Old Master oilpainting texture and natural painterlyclouds. Match colours/brightness of Image2'ssky. Repaint as a mostly clear summer daytime sky. A large open area of pale natural warm blue, a few scattered soft small cream clouds, slightly more cloud toward the bottom. Match the classical oil paint texture, avoid digitally perfect flat gradients. No sun disk or moon. Only blue sky and clouds, edge to edge.
+## Dry-season addition — 16 October 2026
 
+Generated with the built-in image generation tool, using `public/art/environments/summer.webp` as the reference. The output was visually inspected and converted to a 1774 × 887 WebP with Sharp at quality 90. The source output is retained locally under the task's generated-images directory. The delivered asset is `public/art/environments/dry.webp`; its hash and dimensions are in the asset manifest.
+
+Exact prompt:
+
+> Create one edited variant of this exact classical oil-painted landscape, matching its 2:1 wide composition and fine canvas texture. It is a dry-season environmental plate for the same seventeenth-century Good Shepherd painting website. Preserve all tree positions, their silhouettes, the river/lake, shore, foreground path, foreground branches, perspective, soft classical brushwork and lighting direction. Change only vegetation and ground moisture: the trees remain fully foliated in restrained dusty olive and sage green; grasses and low groundcover become straw-coloured and dry, with muted earth. A subtle natural dry-season appearance, not orange/red temperate fall foliage. Do not strip leaves, do not add snow, do not turn it into a desert, do not add palms or exotic species. Keep the water and its shoreline in exactly the same places. Preserve the soft blue sky and light clouds appropriate to neutral daylight; no sun or moon disc. No people, animals, buildings, typography or frames. Faithful painted surface, not photographic, not oversaturated. Output a single full wide landscape with no panels.

@@ -92,7 +92,7 @@ export default function Home() {
         <p>Christ carries a sheep across his shoulders, an image of care, protection, and the recovery of the lost.</p>
         <p>The painting is held at the Musée national de Port-Royal des Champs. Often reproduced under Philippe de Champaigne’s name, the museum currently lists Jean-Baptiste de Champaigne and discusses the attribution.</p>
         <a className="source-link" href="https://port-royal-des-champs.fr/le-bon-pasteur/" target="_blank" rel="noreferrer">Explore the museum record <ArrowUpRight size={16}/></a>
-        <EnvironmentSettings enabled={localEnvironment} onEnabled={setLocalEnvironment} environment={environment} preview={preview} onPreview={setPreview} description={scene.description}/>
+        <EnvironmentSettings enabled={localEnvironment} onEnabled={setLocalEnvironment} environment={environment} preview={preview} onPreview={setPreview} description={scene.description} foliage={scene.foliage}/>
         <div className="setting-row"><label htmlFor="motion-switch">Motion</label><Switch id="motion-switch" checked={motion} onCheckedChange={setMotion}/></div>
         {reduced&&<p className="preference-note">Movement starts off to respect your device’s reduced-motion preference.</p>}
         <div className="depth-setting"><div className="setting-label"><label id="depth-label">Depth</label><output>{depth}%</output></div><Slider aria-labelledby="depth-label" value={[depth]} min={0} max={100} step={5} onValueChange={v=>setDepth(Array.isArray(v)?v[0]:v)}/></div>

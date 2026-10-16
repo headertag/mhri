@@ -6,6 +6,7 @@ import { pathToFileURL, fileURLToPath } from 'node:url';
 import { pipeline } from 'node:stream/promises';
 import { createGzip } from 'node:zlib';
 import { clientIp, createEnvironmentService, manualLocation } from './environment.mjs';
+import { getClimate } from './climate-grid.mjs';
 
 const MIME = {
   '.html': 'text/html; charset=utf-8', '.js': 'application/javascript; charset=utf-8',
@@ -46,7 +47,8 @@ export function createApp({ root = fileURLToPath(new URL('../dist', import.meta.
         try { location = manualLocation(url.searchParams); } catch { return send(400, JSON.stringify({ error: 'Invalid location' }), 'application/json; charset=utf-8'); }
         const result = await environment.get(clientIp(request, onFly), location);
         if (result.reason === 'rate-limited') response.setHeader('Retry-After', '60');
-        return send(result.reason === 'rate-limited' ? 429 : 200, JSON.stringify(result), 'application/json; charset=utf-8');
+        const climate = result.location ? getClimate(result.location.latitude, result.location.longitude) : null;
+        return send(result.reason === 'rate-limited' ? 429 : 200, JSON.stringify({ ...result, climate }), 'application/json; charset=utf-8');
       }
       if (url.pathname === '/api/places') {
         const query = (url.searchParams.get('q') || '').trim();

@@ -19,14 +19,6 @@
       "sha256": "b94a5ad90a28329547413685cb3945363b7a74e4a9fc927b38e4bd053d1d9799"
     },
     {
-      "id": "dawn-sky",
-      "src": "/art/environments/dawn-sky.webp",
-      "width": 1774,
-      "height": 887,
-      "bytes": 159690,
-      "sha256": "9ff3b98c961a414ed2d3287ea04fe341d067042bbb394ace342944c54a741740"
-    },
-    {
       "id": "dawn",
       "src": "/art/environments/dawn.webp",
       "width": 1774,
@@ -35,12 +27,20 @@
       "sha256": "401b390c95023a4b9e6062de86269325e702fe51cd94d384f5b42df1b13f3de3"
     },
     {
-      "id": "dusk-sky",
-      "src": "/art/environments/dusk-sky.webp",
+      "id": "dawn-sky",
+      "src": "/art/environments/dawn-sky.webp",
       "width": 1774,
       "height": 887,
-      "bytes": 138560,
-      "sha256": "4bf9688ce404f628c3b4d4e47befaa0f907d46809af06db5e8cd47ec903af890"
+      "bytes": 159690,
+      "sha256": "9ff3b98c961a414ed2d3287ea04fe341d067042bbb394ace342944c54a741740"
+    },
+    {
+      "id": "dry",
+      "src": "/art/environments/dry.webp",
+      "width": 1774,
+      "height": 887,
+      "bytes": 433910,
+      "sha256": "a8a430325361e19e41dc37247ffb6550ef1a6823bde75c724615d4d25a4c9920"
     },
     {
       "id": "dusk",
@@ -51,12 +51,12 @@
       "sha256": "f91d593d8620c819ec7bf6793c0c456509d11cfc250dd54b26ec548434030214"
     },
     {
-      "id": "night-sky",
-      "src": "/art/environments/night-sky.webp",
+      "id": "dusk-sky",
+      "src": "/art/environments/dusk-sky.webp",
       "width": 1774,
       "height": 887,
-      "bytes": 105030,
-      "sha256": "b9f791135247a5fce401747c4173ec27a54e02577bd63d7d85fc824ee4ab6228"
+      "bytes": 138560,
+      "sha256": "4bf9688ce404f628c3b4d4e47befaa0f907d46809af06db5e8cd47ec903af890"
     },
     {
       "id": "night",
@@ -65,6 +65,14 @@
       "height": 887,
       "bytes": 179820,
       "sha256": "5e482087102a6c1dd04ec88e4dd35648369fe8f6ca9eae2c8d75562acce72aed"
+    },
+    {
+      "id": "night-sky",
+      "src": "/art/environments/night-sky.webp",
+      "width": 1774,
+      "height": 887,
+      "bytes": 105030,
+      "sha256": "b9f791135247a5fce401747c4173ec27a54e02577bd63d7d85fc824ee4ab6228"
     },
     {
       "id": "overcast-sky",

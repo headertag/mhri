@@ -63,6 +63,19 @@ function timeZone(value) {
   new Intl.DateTimeFormat('en', { timeZone: value }).format();
   return value;
 }
+function elevation(value) {
+  return typeof value === 'number' && Number.isFinite(value) && value >= -500 && value <= 9000 ? value : null;
+}
+function localDate(now, zone) {
+  const parts = new Intl.DateTimeFormat('en', { timeZone: zone, year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(now);
+  const part = name => parts.find(value => value.type === name).value;
+  return `${part('year')}-${part('month')}-${part('day')}`;
+}
+function dateDay(value) {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const epoch = Date.parse(`${value}T00:00:00Z`);
+  return Number.isFinite(epoch) && new Date(epoch).toISOString().slice(0, 10) === value ? epoch : null;
+}
 export function manualLocation(params) {
   if (!['latitude', 'longitude', 'timeZone', 'city', 'countryCode'].some(name => params.has(name))) return null;
   const number = name => {
@@ -117,23 +130,76 @@ function weatherFrom(data, now) {
       isDay: c.is_day === 1,
     },
     sun: { sunrise: solar('sunrise'), sunset: solar('sunset') },
+    elevationM: elevation(data.elevation),
     fetchedAt: new Date(now).toISOString(),
+  };
+}
+
+/** A recent modeled-weather summary, never a single cold reading or a climate normal. */
+function climateHistoryFrom(data, now, zone) {
+  const daily = data.daily;
+  const fields = ['temperature_2m_mean', 'temperature_2m_min', 'temperature_2m_max', 'precipitation_sum', 'snowfall_sum'];
+  if (!daily || !Array.isArray(daily.time) || daily.time.length < 14 || daily.time.length > 32
+    || fields.some(name => !Array.isArray(daily[name]) || daily[name].length !== daily.time.length)) throw new Error('History unavailable');
+  const expectedUnits = { temperature_2m_mean: '°C', temperature_2m_min: '°C', temperature_2m_max: '°C', precipitation_sum: 'mm', snowfall_sum: 'cm' };
+  if (fields.some(name => data.daily_units?.[name] !== expectedUnits[name])) throw new Error('Unexpected history units');
+  const today = dateDay(localDate(now, zone));
+  const earliest = today - 28 * DAY;
+  const dates = new Set();
+  const samples = [];
+  for (let i = 0; i < daily.time.length; i++) {
+    const day = dateDay(daily.time[i]);
+    // Daily dates are interpreted in the requested IANA zone, not the server's zone.
+    // Today is incomplete, and future rows must never influence foliage.
+    if (day === null || day < earliest || day >= today) continue;
+    if (dates.has(day)) throw new Error('Duplicate history date');
+    dates.add(day);
+    try {
+      const mean = finite(daily.temperature_2m_mean[i], -100, 70);
+      const min = finite(daily.temperature_2m_min[i], -100, 70);
+      const max = finite(daily.temperature_2m_max[i], -100, 70);
+      if (min > mean || mean > max) continue;
+      samples.push({ day, date: daily.time[i], mean, min, max,
+        precipitation: finite(daily.precipitation_sum[i], 0, 3000), snowfall: finite(daily.snowfall_sum[i], 0, 3000) });
+    } catch { /* An incomplete daily row cannot contribute a zero to an average. */ }
+  }
+  samples.sort((a, b) => a.day - b.day);
+  // Allow one day's upstream lag, but not a two-week-old half-window presented as recent.
+  if (samples.length < 14 || samples.at(-1).day < today - 2 * DAY) throw new Error('History incomplete or stale');
+  const sum = name => samples.reduce((total, row) => total + row[name], 0);
+  const rounded = value => Math.round(value * 100) / 100;
+  return {
+    climateHistory: {
+      sampleDays: samples.length, startDate: samples[0].date, endDate: samples.at(-1).date,
+      meanTemperatureC: rounded(sum('mean') / samples.length),
+      meanMinTemperatureC: rounded(sum('min') / samples.length),
+      meanMaxTemperatureC: rounded(sum('max') / samples.length),
+      precipitationMm: rounded(sum('precipitation')),
+      freezeDays: samples.filter(row => row.min <= 0).length,
+      snowfallCm: rounded(sum('snowfall')),
+    },
+    elevationM: elevation(data.elevation),
   };
 }
 
 export function createEnvironmentService({ fetchImpl = fetch, now = Date.now, timeoutMs = 3500,
   weatherApiKey = process.env.OPEN_METEO_API_KEY, geoDailyLimit = 900,
-  weatherDailyLimit = 6000, maxConcurrent = 16 } = {}) {
+  weatherDailyLimit = 5000, historyDailyLimit = 400, maxConcurrent = 16 } = {}) {
   // One process-local salt: cached identities cannot be correlated between restarts.
   // Raw IPs exist only for the outgoing lookup; neither requests nor IPs are logged.
   const salt = randomBytes(32);
   const identify = ip => createHmac('sha256', salt).update(ip).digest('hex');
   const geo = new BoundedCache(2048, now);
   const weather = new BoundedCache(512, now);
+  const history = new BoundedCache(512, now);
+  // A history-only outage should not abruptly discard a recent vegetation signal.
+  // Unlike the daily/negative cache, this is refreshed only by validated new data.
+  const lastGoodHistory = new BoundedCache(512, now);
   const rates = new BoundedCache(2048, now);
   const places = new BoundedCache(256, now);
   const pendingGeo = new Map();
   const pendingWeather = new Map();
+  const pendingHistory = new Map();
   const pendingPlaces = new Map();
   const budgets = new Map();
   let active = 0;
@@ -175,7 +241,7 @@ export function createEnvironmentService({ fetchImpl = fetch, now = Date.now, ti
       return JSON.parse(Buffer.concat(chunks).toString('utf8'));
     } finally { active -= 1; }
   }
-  async function memo(cache, pending, key, ttl, loader) {
+  async function memo(cache, pending, key, ttl, loader, failureTtl = MINUTE) {
     const cached = cache.get(key);
     if (cached !== undefined) return cached;
     if (pending.has(key)) return pending.get(key);
@@ -186,7 +252,7 @@ export function createEnvironmentService({ fetchImpl = fetch, now = Date.now, ti
         cache.set(key, value, ttl);
         return value;
       } catch {
-        cache.set(key, null, MINUTE);
+        cache.set(key, null, failureTtl);
         return null;
       } finally { pending.delete(key); }
     })();
@@ -194,6 +260,7 @@ export function createEnvironmentService({ fetchImpl = fetch, now = Date.now, ti
     return promise;
   }
   const base = () => ({ version: 1, status: 'unavailable', location: null, weather: null, sun: null,
+    climateHistory: null, elevationM: null,
     fetchedAt: new Date(now()).toISOString(), sources: SOURCES });
   function tooFrequent(ip) {
     const key = identify(publicIp(ip) || 'local');
@@ -237,7 +304,9 @@ export function createEnvironmentService({ fetchImpl = fetch, now = Date.now, ti
       ));
       if (!location) return { ...base(), reason: 'location-unavailable' };
       const cell = `${location.latitude},${location.longitude},${location.timeZone}`;
-      const conditions = await memo(weather, pendingWeather, cell, 10 * MINUTE, async () => {
+      // Current conditions and slower-changing history have separate caches, budgets and
+      // failures. They start concurrently, so history never adds a second serial timeout.
+      const conditionsPromise = memo(weather, pendingWeather, cell, 10 * MINUTE, async () => {
         const url = new URL(weatherApiKey ? 'https://customer-api.open-meteo.com/v1/forecast' : 'https://api.open-meteo.com/v1/forecast');
         url.search = new URLSearchParams({
           latitude: String(location.latitude), longitude: String(location.longitude), timezone: location.timeZone,
@@ -248,8 +317,28 @@ export function createEnvironmentService({ fetchImpl = fetch, now = Date.now, ti
         }).toString();
         return weatherFrom(await json(url, 'weather', weatherDailyLimit), now());
       });
-      if (!conditions) return { ...base(), status: 'location-only', location, reason: 'weather-unavailable' };
-      return { ...base(), ...conditions, status: 'live', location };
+      const historyPromise = memo(history, pendingHistory, cell, DAY, async () => {
+        const url = new URL(weatherApiKey ? 'https://customer-api.open-meteo.com/v1/forecast' : 'https://api.open-meteo.com/v1/forecast');
+        url.search = new URLSearchParams({
+          latitude: String(location.latitude), longitude: String(location.longitude), timezone: location.timeZone,
+          daily: 'temperature_2m_mean,temperature_2m_min,temperature_2m_max,precipitation_sum,snowfall_sum',
+          past_days: '28', forecast_days: '0', timeformat: 'iso8601',
+          temperature_unit: 'celsius', precipitation_unit: 'mm',
+          ...(weatherApiKey ? { apikey: weatherApiKey } : {}),
+        }).toString();
+        // Open-Meteo counts this four-week request as multiple call units. The 400/day
+        // history cap leaves room alongside 5,000 current and 1,000 city requests.
+        const value = climateHistoryFrom(await json(url, 'history', historyDailyLimit), now(), location.timeZone);
+        lastGoodHistory.set(cell, value, 6 * DAY);
+        return value;
+      }, 10 * MINUTE);
+      const [conditions, latest] = await Promise.all([conditionsPromise, historyPromise]);
+      // Keep the original sample dates transparent; the foliage resolver also checks
+      // their age. Failed refreshes and cache reads never extend this grace period.
+      const recent = latest ?? lastGoodHistory.get(cell) ?? null;
+      const context = { climateHistory: recent?.climateHistory || null, elevationM: conditions?.elevationM ?? recent?.elevationM ?? null };
+      if (!conditions) return { ...base(), ...context, status: 'location-only', location, reason: 'weather-unavailable' };
+      return { ...base(), ...conditions, ...context, status: 'live', location };
     },
   };
 }

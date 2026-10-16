@@ -15,7 +15,7 @@ test('production HTTP routes preserve caching, canonical redirect, private API, 
   await writeFile(join(root, 'art', 'painting.png'), 'png');
   const seen = [];
   const server = createApp({ root, onFly: false, environment: {
-    get: async (ip, location) => { seen.push({ ip, location }); return { version: 1, status: 'unavailable', location: null, weather: null }; },
+    get: async (ip, location) => { seen.push({ ip, location }); return { version: 1, status: location ? 'location-only' : 'unavailable', location, weather: null }; },
     places: async query => ({ places: [{ name: query }] }),
   } });
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
@@ -53,7 +53,11 @@ test('production HTTP routes preserve caching, canonical redirect, private API, 
   assert.equal(seen[0].ip, null);
   assert.equal((await get('/api/environment?latitude=bad')).status, 400);
   const selected = new URLSearchParams({ latitude: '43.65', longitude: '-79.38', city: 'Toronto', timeZone: 'America/Toronto' });
-  assert.equal((await get(`/api/environment?${selected}`)).status, 200);
+  const selectedResponse=await get(`/api/environment?${selected}`);
+  assert.equal(selectedResponse.status, 200);
+  const selectedPayload=await selectedResponse.json();
+  assert.equal(selectedPayload.climate.group,'continental');
+  assert.equal(selectedPayload.climate.koppenCode,'Dfa');
   assert.equal(seen[1].location.source, 'city');
   assert.equal((await get('/api/places?q=x')).status, 400);
   assert.deepEqual(await (await get('/api/places?q=Toronto')).json(), { places: [{ name: 'Toronto' }] });

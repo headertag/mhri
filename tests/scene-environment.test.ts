@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
 import { resolveScene } from '../src/scene-environment.ts';
-import { retainLocation, validPlace, type Environment } from '../src/environment.ts';
+import { mergeEnvironment, retainLocation, validPlace, type Environment } from '../src/environment.ts';
+import { getClimate } from '../server/climate-grid.mjs';
 
 const date = new Date('2026-10-16T04:00:00Z');
 const auto = {time:'auto',weather:'auto',season:'auto'};
@@ -71,4 +72,47 @@ test('disabling local conditions restores the established painting environment',
   assert.equal(scene.landscape,'/art/landscape-wide.png');
   assert.equal(scene.skyImage,'/art/cloud-sky.png');
   assert.equal(scene.moonOpacity,0); assert.equal(scene.figureFilter,'none');
+});
+
+test('real mapped climates select California green or dry foliage while Toronto keeps autumn colour', () => {
+  for (const [lat,lon] of [[34.1,-118.2],[37.8,-122.4]]) {
+    const env=make(lat,lon,'America/Los_Angeles'); env.climate=getClimate(lat,lon);
+    const scene=resolveScene(true,env,date,auto);
+    assert.equal(scene.season,'autumn'); assert.equal(scene.foliage.state,'green');
+    assert.doesNotMatch(scene.landscape,/autumn|winter/);
+    assert.match(scene.description,/mediterranean green/i);
+  }
+  const toronto=make();toronto.climate=getClimate(43.7,-79.4);
+  assert.equal(resolveScene(true,toronto,date,auto).foliage.state,'autumn');
+});
+
+test('equatorial climate remains green and explicit seasonal previews still override local foliage', () => {
+  const singapore=make(1.3,103.8,'Asia/Singapore');singapore.climate=getClimate(1.3,103.8);
+  const scene=resolveScene(true,singapore,date,auto);
+  assert.equal(scene.foliage.state,'green');assert.match(scene.foliage.label,/rainforest/i);
+  const selected=resolveScene(true,singapore,date,{time:'day',weather:'clear',season:'autumn'});
+  assert.equal(selected.foliage.state,'autumn');assert.equal(selected.foliage.confidence,'preview');
+  assert.match(selected.landscape,/autumn/);
+});
+
+test('a current rain shower cannot erase sustained dry-climate foliage', () => {
+  const env=make(34.1,-118.2,'America/Los_Angeles');env.climate=getClimate(34.1,-118.2);
+  env.climateHistory={sampleDays:28,startDate:'2026-09-18',endDate:'2026-10-15',meanTemperatureC:22,meanMinTemperatureC:16,meanMaxTemperatureC:28,precipitationMm:2,freezeDays:0,snowfallCm:0};
+  env.weather!.weatherCode=63;env.weather!.cloudCover=95;
+  const scene=resolveScene(true,env,date,auto);
+  assert.equal(scene.foliage.state,'dry');assert.equal(scene.weather.precipitation,'rain');
+  assert.match(scene.landscape,/dry.webp/);assert.ok(existsSync(new URL(`../public${scene.landscape}`,import.meta.url)));
+});
+
+test('a history-only outage retains same-location context while accepting new live weather', () => {
+  const previous=make();previous.climate=getClimate(43.7,-79.4);previous.elevationM=162;
+  previous.climateHistory={sampleDays:28,startDate:'2026-09-18',endDate:'2026-10-15',meanTemperatureC:15,meanMinTemperatureC:9,meanMaxTemperatureC:21,precipitationMm:12,freezeDays:0,snowfallCm:0};
+  const incoming=make();incoming.climateHistory=null;incoming.elevationM=null;incoming.weather!.temperatureC=19;
+  const merged=mergeEnvironment(previous,incoming);
+  assert.equal(merged.climateHistory,previous.climateHistory);assert.equal(merged.elevationM,162);
+  assert.equal(merged.status,'live');assert.equal(merged.weather!.temperatureC,19);
+  const changed=make(34.1,-118.2,'America/Los_Angeles');changed.climateHistory=null;
+  assert.equal(mergeEnvironment(previous,changed).climateHistory,null);
+  assert.equal(retainLocation(previous,null).climate,previous.climate);
+  assert.equal(retainLocation(previous,{id:1,name:'Los Angeles',latitude:34.1,longitude:-118.2,timeZone:'America/Los_Angeles'}).climateHistory,null);
 });

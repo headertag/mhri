@@ -97,10 +97,17 @@ export function AliceCapture({ runId, appReady, environment, environmentLoading,
         windSpeedKmh: environment.weather.windSpeedKmh,
         windDirectionDeg: environment.weather.windDirectionDeg,
       } : null,
+      climate: environment?.climate ? {
+        koppenCode: environment.climate.koppenCode, group: environment.climate.group,
+        confidence: environment.climate.confidence, source: environment.climate.source,
+      } : null,
+      climateHistory: environment?.climateHistory || null,
+      elevationM: environment?.elevationM ?? null,
     },
     scene: {
       period: scene.period,
       season: scene.season,
+      foliage: scene.foliage,
       weather: scene.weather.kind,
       weatherLabel: scene.weather.label,
       cloudCover: scene.weather.cloudCover,
@@ -132,7 +139,8 @@ export function AliceCapture({ runId, appReady, environment, environmentLoading,
       <dt>Local</dt><dd>{localTime}</dd>
       <dt>Zone</dt><dd>{timeZone}{!location && <span> · device fallback</span>}</dd>
       <dt>Data</dt><dd>{environment?.status || 'loading'}{environmentError ? ' · request failed' : ''}</dd>
-      <dt>Scene</dt><dd>{scene.period} · {scene.season} · {scene.weather.label.toLowerCase()}</dd>
+      <dt>Scene</dt><dd>{scene.period} · {scene.foliage.label.toLowerCase()} · {scene.weather.label.toLowerCase()}</dd>
+      <dt>Climate</dt><dd>{environment?.climate?.koppenCode || 'Unmapped'} · {scene.foliage.confidence}</dd>
       <dt>Moon</dt><dd>{scene.sky?.phaseName || 'Not calculated'} · {moonVisibility}</dd>
       <dt>Device</dt><dd>{device.width} × {device.height} · DPR {device.dpr}</dd>
     </dl>

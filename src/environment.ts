@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import type { ClimateProfile, ClimateHistory } from './scene-foliage';
 
 export interface Place {
   id: number;
@@ -16,6 +17,9 @@ export interface Environment {
   weather: { observedAt: string; temperatureC: number; weatherCode: number; cloudCover: number; precipitationMm: number; rainMm: number; snowfallCm: number; windSpeedKmh: number; windDirectionDeg: number; isDay: boolean } | null;
   sun: { sunrise: string | null; sunset: string | null } | null;
   fetchedAt: string;
+  climate?: ClimateProfile | null;
+  climateHistory?: ClimateHistory | null;
+  elevationM?: number | null;
   reason?: string;
 }
 
@@ -31,9 +35,21 @@ function savedPlace(): Place | null {
 }
 
 export function retainLocation(previous: Environment | null, place: Place | null): Environment {
+  const sameLocation = !place || (previous?.location?.latitude === place.latitude && previous?.location?.longitude === place.longitude && previous?.location?.timeZone === place.timeZone);
   return { version: 1, status: place || previous?.location ? 'location-only' : 'unavailable',
     location: place ? {latitude:place.latitude,longitude:place.longitude,timeZone:place.timeZone,city:place.name,countryCode:place.countryCode || null,approximate:true,source:'city'} : previous?.location || null,
-    weather: null, sun: null, fetchedAt: new Date().toISOString(), reason: 'weather-unavailable' };
+    weather: null, sun: null, climate: sameLocation ? previous?.climate || null : null,
+    climateHistory: sameLocation ? previous?.climateHistory || null : null,
+    elevationM: sameLocation ? previous?.elevationM ?? null : null,
+    fetchedAt: new Date().toISOString(), reason: 'weather-unavailable' };
+}
+
+/** A history-only outage must not replace still-recent foliage context with a guess. */
+export function mergeEnvironment(previous: Environment | null, incoming: Environment): Environment {
+  const a = previous?.location, b = incoming.location;
+  if (!a || !b || a.latitude !== b.latitude || a.longitude !== b.longitude || a.timeZone !== b.timeZone) return incoming;
+  return { ...incoming, climateHistory: incoming.climateHistory ?? previous?.climateHistory ?? null,
+    elevationM: incoming.elevationM ?? previous?.elevationM ?? null };
 }
 
 export function useEnvironment(enabled: boolean, { captureMode = false }: {captureMode?: boolean} = {}) {
@@ -79,7 +95,7 @@ export function useEnvironment(enabled: boolean, { captureMode = false }: {captu
         if (result.version !== 1 || !['live', 'location-only', 'unavailable'].includes(result.status)) throw new Error('Invalid environment');
         if (result.location && !validPlace({ ...result.location, name: result.location.city || 'Approximate area' })) throw new Error('Invalid location');
         if (result.weather && (!Number.isFinite(result.weather.weatherCode) || !Number.isFinite(result.weather.cloudCover) || !Number.isFinite(result.weather.temperatureC) || !Number.isFinite(Date.parse(result.weather.observedAt)))) throw new Error('Invalid weather');
-        if (active) { setData(previous => result.location ? result : keepLocation(previous)); setError(false); }
+        if (active) { setData(previous => result.location ? mergeEnvironment(previous, result) : keepLocation(previous)); setError(false); }
       } catch { if (active) { setData(keepLocation); setError(true); } }
       finally { clearTimeout(timer); controller = null; lastFetch = Date.now(); if (active) setLoading(false); }
     }

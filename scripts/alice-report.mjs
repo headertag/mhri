@@ -63,6 +63,8 @@ function summarizeCapture(input) {
   const location = object(capture.location ?? environment.location);
   const weather = object(capture.weather ?? environment.weather);
   const scene = object(capture.scene);
+  const foliage = object(scene.foliage);
+  const climate = object(environment.climate);
   const viewport = object(capture.viewport);
   const zone = timeZone(location.timeZone ?? location.timezone ?? capture.timeZone ?? capture.timezone);
   const city = text(location.city ?? location.name ?? capture.city, 100);
@@ -80,6 +82,8 @@ function summarizeCapture(input) {
     capturedAt: date(capture.capturedAtISO ?? capture.capturedAt),
     environmentStatus: text(environment.status ?? capture.environmentStatus, 40),
     environmentReason: text(environment.reason, 100),
+    foliage: { state: text(foliage.state, 30), label: text(foliage.label, 100), confidence: text(foliage.confidence, 40), reason: text(foliage.reason, 400) },
+    climate: { koppenCode: text(climate.koppenCode, 8), group: text(climate.group, 40), confidence: text(climate.confidence, 20) },
     locationSource: ['ip', 'city'].includes(location.source) ? location.source : null,
     weather: {
       label,
@@ -210,7 +214,7 @@ function card(result) {
   const location = [capture.city, capture.country].filter(Boolean).join(', ') || 'Location not reported';
   const temperature = capture.weather.temperatureC == null ? '' : ` · ${Math.round(capture.weather.temperatureC)}°C`;
   const duration = result.durationMs == null ? '—' : `${(result.durationMs / 1000).toFixed(1)} s`;
-  const phase = [capture.period, capture.season].filter(Boolean).join(' · ');
+  const phase = [capture.period, capture.foliage.label || capture.season].filter(Boolean).join(' · ');
   const image = result.screenshot
     ? `<a class="capture-link" href="${escape(result.screenshot)}" target="_blank" rel="noopener" aria-label="Open full-size capture ${result.index}: ${escape(location)}"><img src="${escape(result.screenshot)}" alt="MHRI painting captured from ${escape(location)}, ${escape(weatherLabel(capture))}" loading="lazy" decoding="async"><span class="image-action">Open full size ↗</span></a>`
     : `<div class="capture-placeholder"><span class="placeholder-symbol" aria-hidden="true">${result.status === 'error' ? '×' : '◌'}</span><span>${result.status === 'error' ? 'Capture unavailable' : result.status === 'success' ? 'No screenshot returned' : 'Awaiting capture'}</span></div>`;

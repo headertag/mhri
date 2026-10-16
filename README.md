@@ -4,7 +4,7 @@
 
 An immersive, full-viewport presentation of *Le Bon Pasteur* (*The Good Shepherd*). The intention is to give the viewer the feeling of standing inside the painting: the figure remains the centre of attention, while landscape, atmosphere, light and a restrained movement of fabric create depth.
 
-This repository contains the complete demonstration site, its artwork assets, and the Fly.io deployment workflow. A small native Node.js server serves the built React application and a same-origin location/weather API. Visitors need no account, GPS permission, or API key. Local time, modeled weather and season can now change the landscape while preserving the original painted figure.
+This repository contains the complete demonstration site, its artwork assets, and the Fly.io deployment workflow. A small native Node.js server serves the built React application and a same-origin location/weather API. Visitors need no account, GPS permission, or API key. Local daylight, modeled weather, mapped climate and recent conditions can change the landscape while preserving the original painted figure.
 
 <img src="public/art/le-bon-pasteur.png" alt="The supplied reproduction of Le Bon Pasteur: Christ carries a sheep and wears a blue mantle over a pink tunic" width="240" />
 
@@ -113,13 +113,33 @@ At **1×**, horizontal cloud movement completes a cycle in two minutes, with an 
 
 **Local time & weather** starts enabled and can be turned off in **About the painting** to restore the established landscape. Automatic conditions use the visitor's approximate city-level coordinates and IANA time zone, not the Fly machine's Toronto location or a single time zone for an entire country. IP geolocation can reflect a VPN exit, mobile carrier or internet provider. **Not your area? Choose a city** provides a city search and explicit override; **Use my approximate IP location** removes that override.
 
-The browser refreshes environment data every 30 minutes while visible and checks again after a long absence. A minute clock updates the astronomical scene between weather refreshes. If a provider fails, known location remains useful for the sun, moon and season, but weather is marked unavailable. Without any known location, the device clock supplies a simple time-of-day fallback; the app does not invent a geographically visible moon or claim guessed weather is current. Weather observations older than three hours are not used.
+The browser refreshes environment data every 30 minutes while visible and checks again after a long absence. A minute clock updates the astronomical scene between weather refreshes. If a provider fails, known location remains useful for the sun and moon, but unavailable weather is disclosed. Current conditions and recent weather history fail independently: a missing history does not turn valid live weather off. Without any known location, the device clock supplies a simple time-of-day fallback and foliage stays neutral green; the app does not invent a geographically visible moon or claim guessed weather is current. Weather observations older than three hours are not used.
 
 ### Painted variants and atmospheric interpretation
 
-Fourteen generated WebP assets provide nine landscapes—dawn, dusk, night, spring, summer, autumn, dormant winter, rain and snow—and five sky plates—dawn, dusk, night, clear and overcast. They are alternatives to the project's extended landscape, not alterations of `le-bon-pasteur.png` or discovered historical versions. The [generation record](docs/environment-art-prompts.md) contains the prompts and source references; [the manifest](public/art/environments/manifest.json) records dimensions and hashes.
+Fifteen generated WebP assets provide ten landscapes—dawn, dusk, night, spring, summer, autumn, dormant winter, dry, rain and snow—and five sky plates—dawn, dusk, night, clear and overcast. They are alternatives to the project's extended landscape, not alterations of `le-bon-pasteur.png` or discovered historical versions. The [generation record](docs/environment-art-prompts.md) contains the prompts and source references; [the manifest](public/art/environments/manifest.json) records dimensions and hashes.
 
-Time, season and weather are separate inputs. Seasonal foliage is preserved with runtime lighting treatments for dawn, dusk and night. Rain or hail uses the rain landscape in summer/tropical scenes, while retaining spring, autumn or dormant winter foliage with wet lighting and precipitation in those seasons. Snowfall selects the separate snow landscape. **Winter does not automatically mean snow:** the winter asset shows dormant vegetation without snow, while snowfall selects its own asset and particles. Meteorological seasons reverse in the southern hemisphere. Tropical locations retain green foliage instead of receiving an artificial northern winter. These are artistic climate generalizations; they do not model every local biome or accumulated snow depth.
+Time, foliage and weather are separate inputs. Foliage is preserved with runtime lighting treatments for dawn, dusk and night. Rain or hail uses the rain landscape when foliage is green, while retaining fresh spring, dry, autumn or dormant foliage with wet lighting and precipitation in those states. A single shower does not instantly green dry vegetation. Snowfall selects the separate snow landscape. **Winter does not automatically mean snow:** the dormant asset has no snow, while snowfall selects its own asset and particles. The site does not model accumulated snow depth.
+
+### Climate-aware foliage, with explicit limits
+
+Automatic foliage no longer assigns orange leaves or bare branches solely because a hemisphere's calendar says autumn or winter. The server looks up rounded coordinates in a bundled **global 0.1° Köppen–Geiger classification raster**, using Beck et al. (2023), the corrected January 2026 V3 data and **1991–2020 climate normals**. These are actual mapped classifications, not country boxes, city-name exceptions or latitude bands. The lookup runs offline and adds no third-party request. Coastal fallback is limited and labeled; unmapped locations remain unknown. See [data provenance, exact hashes and reproduction instructions](docs/climate-data.md).
+
+Open-Meteo supplies a separate summary of the last **28 completed local days**: mean daily temperature, mean minima and maxima, total precipitation, freezing-night count and snowfall total. The backend needs at least 14 complete, valid daily records and a recent end date to return a summary. Foliage is more conservative: it uses history only with at least **21 valid samples**, at least **75% coverage** of an interval no longer than 35 days, and an end date within seven days. Current temperature is deliberately absent from the foliage decision. Optional modeled elevation helps identify highland conditions; it is an estimate for the coarse weather location, not a survey of the visitor's property.
+
+| Mapped climate | Automatic artistic treatment |
+| --- | --- |
+| Tropical rainforest | Keeps green foliage throughout the year. |
+| Seasonal tropical | Recent multi-week rainfall can select muted dry-season foliage; it does not create temperate orange autumn. |
+| Arid | Uses muted olive vegetation and dry earth; substantial recent rainfall can support a restrained greener treatment. |
+| Mediterranean | Uses evergreen green or sustained-dry foliage. Calendar autumn alone never turns it orange. |
+| Subtropical and low-latitude highland | Uses green or supported dry-season foliage; cool equatorial nights do not imply a temperate winter. |
+| Oceanic and boreal | Conservatively retains green or evergreen woodland because climate alone does not identify the trees' leaf habit. |
+| Continental | Hemisphere-local season and day length gate autumn/dormancy; sustained temperatures and freezing nights refine late autumn and spring. A warm October interval does not restart summer, and one cold day cannot strip the leaves. |
+| Polar | Uses subdued dormant terrain without a temperate orange autumn. |
+| Missing classification | Keeps neutral green foliage instead of guessing from a month or latitude. |
+
+These are **art-direction rules**, not observed vegetation or a calibrated phenology forecast. The painting's tree species, irrigation, soils and local land cover are unknown. A climate class describes regional temperature and precipitation patterns, not which trees occur in this historical scene. The original woodland composition is preserved even in places where it would not represent the local ecosystem. About displays the selected foliage treatment and its reason so the choice can be inspected. **Season preview remains an explicit override**, allowing spring, summer, autumn or winter artwork anywhere; its label identifies it as a preview.
 
 WMO weather codes distinguish clear, cloudy, overcast, fog, drizzle, freezing rain, rain, snow, snow grains, showers, thunderstorms and hail. A bounded Canvas layer renders precipitation with several apparent depths and subdued visibility around the face. Wind influences its drift. Mist softens distance and small rain ripples suggest wet ground. There are no sounds or flashing lightning effects. Motion off or reduced motion retains a static atmosphere, and animation pauses in hidden tabs. Sky and landscape images are decoded before the full scene changes, keeping figure lighting, moon and weather aligned with the displayed background. If image loading fails, the previous complete scene remains visible.
 
@@ -133,7 +153,7 @@ The landscape has no geographic compass bearing. The moon's screen position uses
 
 | Endpoint | Purpose and behavior |
 | --- | --- |
-| `GET /api/environment` | Uses Fly's `Fly-Client-IP` header to request approximate location, then requests modeled weather for rounded coordinates. Returns explicit `live`, `location-only` or `unavailable` status. |
+| `GET /api/environment` | Uses Fly's `Fly-Client-IP` header for approximate location, then fetches current weather and recent history concurrently for rounded coordinates and adds the offline climate classification. Returns explicit `live`, `location-only` or `unavailable` weather status. |
 | `GET /api/environment?latitude=…&longitude=…&timeZone=…&city=…` | Uses a validated selected city instead of an IP lookup. Optional `countryCode` is a two-letter country code. |
 | `GET /api/places?q=…` | Searches city names of 2–80 characters and returns up to five choices with region, country and IANA time zone. |
 | `GET /healthz` | Returns a small health response without calling any external provider. |
@@ -144,13 +164,16 @@ The raw visitor IP is sent over HTTPS to **IPWhois** for the lookup. This applic
 
 Browser settings are stored in `mhri-view`; an explicitly selected city is stored in `mhri-place`. Automatic IP location is not persisted in browser storage. Disabling local conditions stops automatic environment requests. The browser sends the selected city's coordinates and time zone when an override is active.
 
-Geolocation and city search are cached for one hour, weather by rounded location/time-zone cell for ten minutes, and provider failures briefly for one minute. Caches, concurrent fetches, response sizes and per-client request rates are bounded. The process has daily request budgets of **900 IP lookups, 6,000 forecasts and 1,000 city searches**, with a provider `429` cooldown. These limits reset on process restart and are guardrails, not a durable account-wide quota across multiple machines. Provider requests time out after 3.5 seconds; API responses use `Cache-Control: no-store`.
+The response keeps `weather`, `climate`, `climateHistory` and `elevationM` separate. `climate` identifies the detailed Köppen code, broad scene group, source and mapped/nearby/unknown lookup provenance. Nullable `climateHistory` includes sample count, start/end dates, temperature averages, precipitation, freeze-day count and snowfall. A history-only outage preserves the last valid summary for that location for up to six days without extending its lifetime on failed refreshes. Its original dates remain visible, and the foliage logic rejects history with an end date more than seven days old. Without usable history it remains null, while valid current weather stays live. The browser also retains still-recent history for the same coordinates and time zone; choosing another city clears that context. These climate and history fields are not claims of live tree observations.
+
+Geolocation and city search are cached for one hour, current weather by rounded location/time-zone cell for ten minutes, and successful history for **24 hours**. History failures are cached for ten minutes; other provider failures for one minute. Caches, concurrent fetches, response sizes and per-client request rates are bounded. The process has rolling daily request budgets of **900 IP lookups, 5,000 current forecasts, 400 history requests and 1,000 city searches**, with provider `429` cooldowns. These limits reset on process restart and are guardrails, not a durable account-wide quota across multiple machines. Provider requests time out after 3.5 seconds; current weather and history start together rather than adding serial provider waits. API responses use `Cache-Control: no-store`.
 
 - **Approximate IP location:** [IPWhois documentation](https://ipwhois.io/documentation). Its free endpoint currently allows commercial use and up to 1,000 requests/day, without an uptime guarantee.
-- **Modeled weather:** [Open-Meteo](https://open-meteo.com/en/docs), data under [CC BY 4.0](https://open-meteo.com/en/licence). Current conditions are weather-model estimates, not a direct sensor measurement at the visitor. Weather codes and cloud cover are adapted into an artistic scene.
+- **Modeled weather and recent history:** [Open-Meteo](https://open-meteo.com/en/docs), data under [CC BY 4.0](https://open-meteo.com/en/licence). Current conditions and recent daily aggregates are weather-model estimates, not a direct sensor measurement at the visitor or long-term climate normals. Weather codes, cloud cover and multi-week conditions are adapted into an artistic scene.
 - **City names and locations:** Open-Meteo's [geocoding service](https://open-meteo.com/en/docs/geocoding-api), based on [GeoNames](https://www.geonames.org/).
+- **Climate classification:** Beck et al. (2023), corrected V3 maps, through [GloH2O](https://www.gloh2o.org/koppen/) and the pinned January 2026 [Figshare release](https://doi.org/10.6084/m9.figshare.21789074.v2), under CC BY 4.0. [Full attribution and modifications](server/data/CLIMATE-ATTRIBUTION.md).
 
-Open-Meteo's free service is for **noncommercial use**, up to 10,000 calls/day without an uptime guarantee; requests with many variables can count as more than one call. A commercial deployment needs the appropriate [Open-Meteo plan](https://open-meteo.com/en/pricing). Setting the optional Fly runtime secret `OPEN_METEO_API_KEY` selects its customer weather and geocoding endpoints. No paid subscription is created by the application. Provider terms and limits were checked on 16 October 2026.
+Open-Meteo's free service is for **noncommercial use**, up to 10,000 call units/day without an uptime guarantee. Requests exceeding ten variables or two weeks can count as multiple calls. Budgeting the current query at about 1.1 units and the four-week history query at about 2 units gives a conservative **7,300 daily units** across the configured current/history/city caps; this estimate is not provider-side metering or a cross-restart quota. A commercial deployment needs the appropriate [Open-Meteo plan](https://open-meteo.com/en/pricing). Setting the optional Fly runtime secret `OPEN_METEO_API_KEY` selects its customer current-weather, history and geocoding endpoints. No paid subscription is created by the application. Provider terms and limits were checked on 16 October 2026.
 
 ## Lettering and the quiet interface
 
@@ -256,6 +279,7 @@ src/artwork.tsx               Scene layers, masks, shadows and parallax/cloud mo
 src/environment.ts           API fetching, selected-city persistence and graceful fallback
 src/environment-settings.tsx  About dialog location search and atmosphere preview controls
 src/scene-environment.ts      Selects landscape/sky assets, lighting and weather state
+src/scene-foliage.ts          Climate/history/daylight foliage proxy and explanatory reasons
 src/scene-astronomy.ts        SunCalc positions, lunar visibility, seasons and WMO codes
 src/moon.tsx                  Phase-aware moon disc and restrained sky positioning
 src/weather-effects.tsx       Bounded precipitation and mist animation
@@ -272,25 +296,29 @@ public/art/                   Original reproduction, extended plates and landsca
 public/art/environments/      Generated time/weather/season WebPs and asset manifest
 public/fonts/                 Fonts and their SIL Open Font License notices
 server/index.mjs              Native HTTP server, static caching, API routes, redirect and health
-server/environment.mjs        Validated IP/city/weather providers, limits and memory caches
+server/environment.mjs        Validated IP/city/weather/history providers, limits and caches
+server/climate-grid.mjs        Offline coordinate lookup of the verified Köppen–Geiger raster
+server/data/                  Pinned climate grid, legend, metadata and CC BY attribution
 server/*.test.mjs             Deterministic provider and HTTP tests
 tests/*.test.ts               Astronomy and environment selection regression tests
 Dockerfile                    Node build/test stage and unprivileged Node runtime
 fly.toml                      Fly app, region, HTTPS, machine size and health checks
 scripts/check-server.mjs       Production HTTP smoke checks
+scripts/build-climate-grid.py Reproduces the bundled climate grid from pinned source data
 docs/fly-dns.md                Exact GoDaddy records and certificate cutover steps
 docs/environment-art-prompts.md Source references and environment generation prompts
 docs/environment-uat.md        Manual UAT checklist and automated-coverage boundaries
+docs/climate-data.md           Climate data provenance, reproduction and lookup limitations
 .github/workflows/deploy.yml   Build and publish pipeline
 ```
 
-The Fly.io edition reuses the approved prototype's artwork, masks and core composition. Its Vite/React bundle and native Node API have no dependency on the private UAT URL or Sites authentication. Outbound provider requests are limited to the location, weather and city-search services described above; astronomy is calculated in the browser.
+The Fly.io edition reuses the approved prototype's artwork, masks and core composition. Its Vite/React bundle and native Node API have no dependency on the private UAT URL or Sites authentication. Outbound provider requests are limited to the location, current/recent weather and city-search services described above; astronomy is calculated in the browser and climate lookup uses the bundled raster. Normal builds need no raster download or GIS package; the separate preparation script is only needed to reproduce the climate data.
 
-The 16 October environment work includes deterministic coverage of **112 preview combinations** (4 times × 7 weather choices × 4 seasons), astronomical edge cases, provider failures and HTTP delivery. These tests confirm selection logic and available assets, not the visual quality of every rendered combination. Interactive browser automation was unavailable during the initial environment deployment. The subsequent ALICE run below adds remote browser evidence; **manual desktop/mobile visual UAT remains pending**. Follow [the environment UAT guide](docs/environment-uat.md) before treating that visual review as complete.
+The 16 October environment work includes deterministic coverage of **112 preview combinations** (4 times × 7 weather choices × 4 seasons), astronomical edge cases, provider failures and HTTP delivery. Climate additions cover actual raster cells, foliage rules, multi-week history validation, independent failures and cache lifetimes. These tests confirm selection logic and available assets, not the visual quality of every rendered combination. Interactive browser automation was unavailable during the initial environment deployment. The ALICE run below is a **pre-patch baseline**, not validation of this patch; no new ALICE batch was run for the climate revision. **Manual desktop/mobile visual UAT remains pending.** Follow [the environment UAT guide](docs/environment-uat.md) before treating that visual review as complete.
 
 ### ALICE regional screenshots
 
-The [regional capture gallery](https://mhri.net/uat/alice/us-cities-20261016-1552/index.html) records 30 ALICE jobs submitted at **$0.20 CPM**, sampling an operator-described pool of ten randomly assigned US cities. **27 screenshots returned with ready diagnostics and live weather**, across eight detected cities and five IANA time zones; three jobs reached ALICE's task deadline. The failed attempts remain visible in the report. Captures show daylight/autumn conditions and do not establish night, precipitation or mobile-breakpoint coverage. A prominent dark halo arc against brighter skies is flagged for visual review.
+The [regional capture gallery](https://mhri.net/uat/alice/us-cities-20261016-1552/index.html) records 30 ALICE jobs submitted at **$0.20 CPM**, sampling an operator-described pool of ten randomly assigned US cities. **27 screenshots returned with ready diagnostics and live weather**, across eight detected cities and five IANA time zones; three jobs reached ALICE's task deadline. The failed attempts remain visible in the report. These captures **precede the climate-aware foliage revision** and show its earlier daylight/autumn treatment; they must not be used as proof of the revised Los Angeles/San Francisco foliage. They do not establish night, precipitation or mobile-breakpoint coverage. A prominent dark halo arc against brighter skies was flagged for visual review.
 
 The capture-only URL ignores saved city/view settings and changes no visitor preferences. Public results contain local image copies and sanitized diagnostics; credentials, signed download URLs and private provider responses are excluded. See [the ALICE capture workflow](docs/alice-regional-capture.md) for running or resuming a batch, artifact handling and readiness limitations.
 

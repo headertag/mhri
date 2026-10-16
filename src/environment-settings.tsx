@@ -1,14 +1,16 @@
 import { useEffect, useState } from 'react';
 import { Switch } from '@/components/ui/switch';
 import { validPlace, type Place, type useEnvironment } from './environment';
+import type { FoliageState } from './scene-foliage';
 
 export type ScenePreview = { time: string; weather: string; season: string };
 export const LIVE_PREVIEW: ScenePreview = { time: 'auto', weather: 'auto', season: 'auto' };
 
-export function EnvironmentSettings({ enabled, onEnabled, environment, preview, onPreview, description }: {
+export function EnvironmentSettings({ enabled, onEnabled, environment, preview, onPreview, description, foliage }: {
   enabled: boolean; onEnabled: (value: boolean) => void;
   environment: ReturnType<typeof useEnvironment>;
   preview: ScenePreview; onPreview: (value: ScenePreview) => void; description: string;
+  foliage: FoliageState;
 }) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Place[]>([]);
@@ -42,6 +44,7 @@ export function EnvironmentSettings({ enabled, onEnabled, environment, preview, 
         <strong>{loading && !data ? 'Finding your local sky…' : data?.location?.city || place?.name || 'Your device’s local time'}</strong>
         <span>{localTime}{data?.location ? ` · ${data.location.timeZone.replaceAll('_', ' ')}` : ''}</span>
         <span>{description}</span>
+        <p>{foliage.reason}</p>
         {(error || data?.status !== 'live') && !loading && <p>Live weather is unavailable. {data?.location ? 'Local daylight and moon calculations remain active.' : 'The scene follows your device clock until a location is available.'} <button type="button" onClick={environment.retry}>Retry</button></p>}
       </div>
       <details className="scene-options">
@@ -64,7 +67,7 @@ export function EnvironmentSettings({ enabled, onEnabled, environment, preview, 
         <label className="preview-control">Season<select aria-label="Preview season" value={preview.season} onChange={e => onPreview({ ...preview, season: e.target.value })}><option value="auto">Automatic</option><option value="spring">Spring</option><option value="summer">Summer</option><option value="autumn">Autumn</option><option value="winter">Winter</option></select></label>
         {(preview.time !== 'auto' || preview.weather !== 'auto' || preview.season !== 'auto') && <button type="button" className="text-button" onClick={() => onPreview(LIVE_PREVIEW)}>Return to local conditions</button>}
       </details>
-      <p className="environment-note">Approximate IP location: <a href="https://ipwhois.io/" target="_blank" rel="noreferrer">IPWhois</a>. Modeled weather: <a href="https://open-meteo.com/" target="_blank" rel="noreferrer">Open-Meteo</a> (CC BY 4.0). Cities: <a href="https://www.geonames.org/" target="_blank" rel="noreferrer">GeoNames</a>. Your IP is used for the lookup, never shown or saved by this application. No GPS access.</p>
+      <p className="environment-note">Approximate IP location: <a href="https://ipwhois.io/" target="_blank" rel="noreferrer">IPWhois</a>. Modeled weather: <a href="https://open-meteo.com/" target="_blank" rel="noreferrer">Open-Meteo</a> (CC BY 4.0). Cities: <a href="https://www.geonames.org/" target="_blank" rel="noreferrer">GeoNames</a>. Climate: <a href="https://doi.org/10.6084/m9.figshare.21789074.v2" target="_blank" rel="noreferrer">Beck et al.</a> (CC BY 4.0; adapted for foliage). Your IP is used for the lookup, never shown or saved by this application. No GPS access.</p>
     </>}
   </section>;
 }

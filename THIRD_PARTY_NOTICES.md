@@ -72,10 +72,20 @@ SOFTWARE.
 ## Location and weather services
 
 - **IPWhois:** approximate city-level IP geolocation through [ipwho.is](https://ipwhois.io/documentation), subject to the provider's terms and request limits. The app does not claim this is a precise physical location.
-- **Open-Meteo:** modeled weather through the [forecast API](https://open-meteo.com/en/docs). Weather data are licensed under [Creative Commons Attribution 4.0 International](https://open-meteo.com/en/licence). The application maps weather codes and cloud cover into an artistic atmosphere and rounds location coordinates before fetching weather; these visual transformations are not unmodified weather observations. The free service is restricted to noncommercial use; commercial service requires the appropriate provider plan.
+- **Open-Meteo:** current modeled weather, recent daily weather history and modeled elevation through the [forecast API](https://open-meteo.com/en/docs). Weather data are licensed under [Creative Commons Attribution 4.0 International](https://open-meteo.com/en/licence). The application rounds location coordinates, aggregates complete daily records into temperature/precipitation summaries, and maps weather and sustained conditions into an artistic atmosphere. These transformations are not unmodified observations, a tree-species forecast or long-term climate normals. The free service is restricted to noncommercial use; commercial service requires the appropriate provider plan.
 - **GeoNames:** city names, regions, coordinates and time zones returned through [Open-Meteo geocoding](https://open-meteo.com/en/docs/geocoding-api), based on [GeoNames](https://www.geonames.org/). Geocoding responses are shortened to a small city-selection list and coordinates are rounded for this application.
 
 These services are independent providers, not sponsors or endorsers of the artwork project. The README documents the application's request flow, caching, privacy boundaries and optional commercial API configuration.
+
+## Köppen–Geiger climate classification data
+
+The bundled global climate grid derives from Beck, H. E., McVicar, T. R., Vergopolan, N., Berg, A., Lutsko, N. J., Dufour, A., Zeng, Z., Jiang, X., van Dijk, A. I. J. M., and Miralles, D. G. (2023), *High-resolution (1 km) Köppen-Geiger maps for 1901–2099 based on constrained CMIP6 projections*, **Scientific Data 10, 724**, [doi:10.1038/s41597-023-02549-6](https://doi.org/10.1038/s41597-023-02549-6).
+
+MHRI uses the **1991–2020**, publisher-supplied **0.1°** historical classification from the corrected maps described as V3 on the [GloH2O data page](https://www.gloh2o.org/koppen/), pinned to [Figshare version 2, released 14 January 2026](https://doi.org/10.6084/m9.figshare.21789074.v2). The data are licensed under [Creative Commons Attribution 4.0 International](https://creativecommons.org/licenses/by/4.0/), independently of this project's code and artwork rights.
+
+Modifications consist of lossless conversion from categorical GeoTIFF to a compressed byte grid, a bounded and labeled nearby-land fallback for unmapped coastal coordinates, and grouping detailed codes for artistic scene selection. The stored cell classifications are unchanged. Foliage behavior is MHRI's interpretation; the dataset does not identify the painting's trees or supply vegetation observations. No endorsement by the authors is implied.
+
+The full retained attribution and modification notice is [server/data/CLIMATE-ATTRIBUTION.md](server/data/CLIMATE-ATTRIBUTION.md). [docs/climate-data.md](docs/climate-data.md) records source archive/member identifiers, hashes, grid geometry, lookup limits and reproducible preparation instructions.
 
 ## Art
 
