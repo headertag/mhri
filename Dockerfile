@@ -3,9 +3,13 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
-RUN npm run build
+RUN npm test && npm run build
 
-FROM nginxinc/nginx-unprivileged:stable-alpine AS runtime
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-COPY --from=build /app/dist /usr/share/nginx/html
+FROM node:22-alpine AS runtime
+ENV NODE_ENV=production
+WORKDIR /app
+COPY --chown=node:node server ./server
+COPY --from=build --chown=node:node /app/dist ./dist
+USER node
 EXPOSE 8080
+CMD ["node", "server/index.mjs"]

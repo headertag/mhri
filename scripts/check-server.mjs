@@ -27,6 +27,20 @@ assert.equal(painting.status, 200);
 assert.match(painting.headers.get('content-type'), /image\/png/);
 assert.equal((await get('/art/not-a-real-file.png')).status, 404);
 
+// CI runs without a Fly edge, so IP lookup must fail gracefully without contacting
+// a provider on behalf of the CI machine. Never mistake the server's IP for a visitor.
+const environment = await get('/api/environment');
+assert.equal(environment.status, 200);
+assert.equal(environment.headers.get('cache-control'), 'no-store');
+const conditions = await environment.json();
+assert.equal(conditions.version, 1);
+assert.equal(conditions.status, 'unavailable');
+assert.equal(conditions.location, null);
+assert.equal(conditions.weather, null);
+assert.equal(conditions.reason, 'location-unavailable');
+assert.equal((await get('/api/environment?latitude=not-a-number')).status, 400);
+assert.equal((await get('/api/places?q=x')).status, 400);
+
 // fetch normalizes Host, so use the HTTP client to exercise the www virtual host.
 const redirect = await new Promise((resolve, reject) => {
   const request = httpGet(new URL('/about?source=check', origin), {
@@ -40,4 +54,4 @@ const redirect = await new Promise((resolve, reject) => {
 });
 assert.equal(redirect.status, 308);
 assert.equal(redirect.location, 'https://mhri.net/about?source=check');
-console.log('Production server passed health, HTML, asset, cache, missing-file and canonical-host checks.');
+console.log('Production server passed health, HTML, asset, cache, missing-file, environment fallback, input validation and canonical-host checks.');
