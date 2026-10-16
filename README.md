@@ -286,7 +286,13 @@ docs/environment-uat.md        Manual UAT checklist and automated-coverage bound
 
 The Fly.io edition reuses the approved prototype's artwork, masks and core composition. Its Vite/React bundle and native Node API have no dependency on the private UAT URL or Sites authentication. Outbound provider requests are limited to the location, weather and city-search services described above; astronomy is calculated in the browser.
 
-The 16 October environment work includes deterministic coverage of **112 preview combinations** (4 times × 7 weather choices × 4 seasons), astronomical edge cases, provider failures and HTTP delivery. These tests confirm selection logic and available assets, not the visual quality of every rendered combination. Interactive browser automation was unavailable in this implementation session; **manual desktop/mobile visual UAT remains pending**. Follow [the environment UAT guide](docs/environment-uat.md) before treating that visual review as complete.
+The 16 October environment work includes deterministic coverage of **112 preview combinations** (4 times × 7 weather choices × 4 seasons), astronomical edge cases, provider failures and HTTP delivery. These tests confirm selection logic and available assets, not the visual quality of every rendered combination. Interactive browser automation was unavailable during the initial environment deployment. The subsequent ALICE run below adds remote browser evidence; **manual desktop/mobile visual UAT remains pending**. Follow [the environment UAT guide](docs/environment-uat.md) before treating that visual review as complete.
+
+### ALICE regional screenshots
+
+The [regional capture gallery](https://mhri.net/uat/alice/us-cities-20261016-1552/index.html) records 30 ALICE jobs submitted at **$0.20 CPM**, sampling an operator-described pool of ten randomly assigned US cities. **27 screenshots returned with ready diagnostics and live weather**, across eight detected cities and five IANA time zones; three jobs reached ALICE's task deadline. The failed attempts remain visible in the report. Captures show daylight/autumn conditions and do not establish night, precipitation or mobile-breakpoint coverage. A prominent dark halo arc against brighter skies is flagged for visual review.
+
+The capture-only URL ignores saved city/view settings and changes no visitor preferences. Public results contain local image copies and sanitized diagnostics; credentials, signed download URLs and private provider responses are excluded. See [the ALICE capture workflow](docs/alice-regional-capture.md) for running or resuming a batch, artifact handling and readiness limitations.
 
 For changes, build locally and review the following before pushing:
 
