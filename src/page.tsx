@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ArrowUpRight, Check } from 'lucide-react';
 import { Checkbox } from '@base-ui/react/checkbox';
 import { Dialog, DialogTrigger, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -7,6 +7,9 @@ import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { Artwork } from './artwork';
 import { toRomanYear } from './roman-year';
+import { useEnvironment } from './environment';
+import { EnvironmentSettings, LIVE_PREVIEW } from './environment-settings';
+import { resolveScene } from './scene-environment';
 
 const DEFAULT_CLOUD_SPEED = 3;
 
@@ -37,13 +40,18 @@ export default function Home() {
   const [neuromancer,setNeuromancer]=useState(false);
   const [reduced,setReduced]=useState(false);
   const [ready,setReady]=useState(false);
+  const [localEnvironment,setLocalEnvironment]=useState(true);
+  const [preview,setPreview]=useState(LIVE_PREVIEW);
+  const environment = useEnvironment(ready && localEnvironment && !original);
+  const scene = useMemo(() => resolveScene(localEnvironment, environment.data, environment.now, preview), [localEnvironment, environment.data, environment.now, preview]);
   useEffect(()=>{
     const mq=matchMedia('(prefers-reduced-motion: reduce)');
-    let saved:{motion?:boolean;depth?:number;focus?:boolean;cloudSpeed?:number;cloudSpeedDefault?:number}={};
+    let saved:{motion?:boolean;depth?:number;focus?:boolean;cloudSpeed?:number;cloudSpeedDefault?:number;localEnvironment?:boolean}={};
     try{saved=JSON.parse(localStorage.getItem('mhri-view')||'{}')||{};}catch{}
     setReduced(mq.matches);setMotion(!mq.matches&&saved.motion!==false);
     if(typeof saved.depth==='number')setDepth(Math.max(0,Math.min(100,saved.depth)));
     if(typeof saved.focus==='boolean')setFocus(saved.focus);
+    if(typeof saved.localEnvironment==='boolean')setLocalEnvironment(saved.localEnvironment);
     // Apply the new baseline once, then keep remembering the visitor's adjustments.
     if(saved.cloudSpeedDefault===DEFAULT_CLOUD_SPEED&&typeof saved.cloudSpeed==='number'&&Number.isFinite(saved.cloudSpeed))setCloudSpeed(Math.max(0,Math.min(4,saved.cloudSpeed)));
     setReady(true);
@@ -51,7 +59,7 @@ export default function Home() {
     mq.addEventListener('change',preference);
     return()=>mq.removeEventListener('change',preference);
   },[]);
-  useEffect(()=>{if(ready)try{localStorage.setItem('mhri-view',JSON.stringify({motion,depth,focus,cloudSpeed,cloudSpeedDefault:DEFAULT_CLOUD_SPEED}));}catch{}},[motion,depth,focus,cloudSpeed,ready]);
+  useEffect(()=>{if(ready)try{localStorage.setItem('mhri-view',JSON.stringify({motion,depth,focus,cloudSpeed,cloudSpeedDefault:DEFAULT_CLOUD_SPEED,localEnvironment}));}catch{}},[motion,depth,focus,cloudSpeed,ready,localEnvironment]);
   return <main className="sanctuary">
     <h1 className="sr-only">MHRI — Magnifica Humanitas Redemptoris Iesu</h1>
     <svg className="wordmark-effects" width="0" height="0" aria-hidden="true" focusable="false">
@@ -70,7 +78,7 @@ export default function Home() {
         </filter>
       </defs>
     </svg>
-    <Artwork motion={motion} original={original} depth={depth} focus={focus} cloudSpeed={cloudSpeed} neuromancer={neuromancer} signalMotion={motion&&!reduced}/>
+    <Artwork motion={motion} original={original} depth={depth} focus={focus} cloudSpeed={cloudSpeed} neuromancer={neuromancer} signalMotion={motion&&!reduced} scene={scene}/>
     <header className="masthead"><a className="wordmark" href="/" aria-label="MHRI — Magnifica Humanitas Redemptoris Iesu"><span>MHRI</span></a></header>
     <footer className="viewer-footer">
       <Copyright />
@@ -79,6 +87,7 @@ export default function Home() {
         <p>Christ carries a sheep across his shoulders, an image of care, protection, and the recovery of the lost.</p>
         <p>The painting is held at the Musée national de Port-Royal des Champs. Often reproduced under Philippe de Champaigne’s name, the museum currently lists Jean-Baptiste de Champaigne and discusses the attribution.</p>
         <a className="source-link" href="https://port-royal-des-champs.fr/le-bon-pasteur/" target="_blank" rel="noreferrer">Explore the museum record <ArrowUpRight size={16}/></a>
+        <EnvironmentSettings enabled={localEnvironment} onEnabled={setLocalEnvironment} environment={environment} preview={preview} onPreview={setPreview} description={scene.description}/>
         <div className="setting-row"><label htmlFor="motion-switch">Motion</label><Switch id="motion-switch" checked={motion} onCheckedChange={setMotion}/></div>
         {reduced&&<p className="preference-note">Movement starts off to respect your device’s reduced-motion preference.</p>}
         <div className="depth-setting"><div className="setting-label"><label id="depth-label">Depth</label><output>{depth}%</output></div><Slider aria-labelledby="depth-label" value={[depth]} min={0} max={100} step={5} onValueChange={v=>setDepth(Array.isArray(v)?v[0]:v)}/></div>
@@ -91,7 +100,7 @@ export default function Home() {
             <Checkbox.Indicator className="mode-check"><Check size={15} aria-hidden="true"/></Checkbox.Indicator>
           </Checkbox.Root>
         </div>
-        <div className="art-credit">Public-domain artwork. Supplied reproduction.<br/>The painted figure is preserved. The landscape is extended for this immersive presentation.</div>
+        <div className="art-credit">Public-domain artwork. Supplied reproduction.<br/>The painted figure is preserved. AI-generated landscape variants and layered light follow approximate local conditions. Moon phase and horizon visibility are calculated; placement within the painted sky is compositional.</div>
       </DialogContent></Dialog>
     </footer>
   </main>;

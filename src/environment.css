@@ -1,0 +1,29 @@
+/* Lighting is a display treatment; the public-domain figure asset is never repainted. */
+.art-interaction.has-local-environment .seasonal-landscape,.art-interaction.has-local-environment .near-landscape{filter:var(--landscape-light);transition:filter 3s ease}
+.art-interaction.has-local-environment.has-focus .near-landscape{filter:var(--landscape-light) blur(.35px)}
+.has-local-environment .depth-scene,.has-local-environment .figure-mesh{filter:var(--figure-light);transition:filter 3s ease}
+.has-local-environment.is-neuromancer .figure-mesh{filter:var(--figure-light) drop-shadow(0 0 2px #52bfff20)}
+.has-local-environment .figure-shadow{opacity:var(--ground-shadow-opacity);transition:opacity 3s ease}
+.has-local-environment[data-period=night] .halo-aureole{opacity:.75}
+.celestial-space{position:absolute;inset:0;pointer-events:none;mask-image:linear-gradient(#000,#000),url('/art/landscape-foreground-mask.svg');mask-size:cover;mask-position:center;mask-repeat:no-repeat;mask-composite:exclude}
+.local-cloud-sky{opacity:.94;mask-image:linear-gradient(#000 0 44%,#000c 57%,transparent 76%)}
+.scene-moon{position:absolute;width:clamp(28px,4.5vw,64px);aspect-ratio:1;transform:translate(-50%,-50%) translate(calc(var(--px)*-2px),calc(var(--py)*-1px));pointer-events:none;transition:opacity 3s ease;filter:drop-shadow(0 0 9px #e2e7dc28)}
+.scene-moon canvas{display:block;width:100%;height:100%}
+.moon-cloud-veil{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 30% 9% at 83% 22%,#67717d90,transparent 95%),radial-gradient(ellipse 35% 6% at 55% 36%,#505b6990,transparent 90%);transform:translate(var(--cloud-x),var(--cloud-y));transition:opacity 3s ease}
+.environment-summary{padding:0 0 19px;display:grid;gap:7px;font-size:13px;line-height:1.5;color:#c3cbbb}
+.environment-summary strong{font:500 21px/1.25 var(--font-cormorant),Georgia,serif;color:#ead9b7}
+.environment-summary p{margin:3px 0 0;font-size:12px;color:#bbbfae}
+.environment-summary button,.text-button{background:none;border:0;text-decoration:underline;text-underline-offset:3px;color:#e0c68e;min-height:44px;padding:7px 0;font-size:13px;text-align:left}
+.scene-options{border-top:1px solid #bda16330;padding:2px 0 10px;font-size:13px}
+.scene-options summary{cursor:pointer;padding:15px 0;min-height:44px;color:#e5d5b4;font-size:14px}
+.scene-options summary:focus-visible{outline:2px solid #d2b776;outline-offset:3px}
+.scene-input-label{display:block;margin:4px 0 8px;color:#dbddce}
+.scene-options input,.preview-control select{background:#111c17;color:#eee5cf;border:1px solid #7f8064;border-radius:3px;font:400 14px/1.5 var(--font-inter),sans-serif;min-height:44px;padding:9px 10px;max-width:100%;width:100%}
+.scene-options input:focus-visible,.preview-control select:focus-visible{outline:2px solid #e2c88e;outline-offset:3px}
+.preview-control{display:grid;grid-template-columns:1fr 1.2fr;align-items:center;gap:12px;margin-bottom:13px;color:#dbddce}
+.environment-note{font-size:11px;line-height:1.6;color:#b7bead;margin:9px 0 16px}
+.environment-note a{text-underline-offset:3px;color:#d3c69f}
+.place-results button{display:grid;gap:4px;text-align:left;background:#ffffff05;border:0;border-bottom:1px solid #bda16320;width:100%;padding:12px 9px;min-height:44px;font-size:13px}
+.place-results button:hover{background:#d5bf8315}.place-results button strong{font-weight:500;color:#e2d6b9}.place-results button span{font-size:11px;color:#b3beaa}.place-results p{color:#c8c3ae;font-size:12px;line-height:1.5;margin:10px 0}
+@media(max-width:700px){.scene-moon{width:35px}.environment-note{font-size:12px}.scene-options input,.preview-control select{font-size:16px}}
+@media(prefers-reduced-motion:reduce){.scene-moon,.has-local-environment .landscape-foreground,.has-local-environment .near-landscape,.has-local-environment .depth-scene,.has-local-environment .figure-mesh,.has-local-environment .figure-shadow,.moon-cloud-veil{transition:none}}

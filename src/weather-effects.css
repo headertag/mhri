@@ -1,0 +1,65 @@
+.weather-effects {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+  contain: layout paint;
+}
+
+.weather-particles {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.weather-mist {
+  position: absolute;
+  pointer-events: none;
+  opacity: var(--weather-mist-opacity, 0);
+  transition: opacity 3s ease;
+}
+
+.weather-mist-distant {
+  inset: 12% -14% 9%;
+  background:
+    radial-gradient(ellipse at 16% 60%, rgb(var(--weather-mist-rgb) / .72), transparent 51%),
+    radial-gradient(ellipse at 89% 53%, rgb(var(--weather-mist-rgb) / .86), transparent 52%);
+  mask-image: linear-gradient(transparent 4%, #000 38%, #000 80%, transparent 100%);
+}
+
+.weather-mist-ground {
+  inset: 51% -18% -12%;
+  background:
+    radial-gradient(ellipse at 28% 72%, rgb(var(--weather-mist-rgb) / .7), transparent 62%),
+    radial-gradient(ellipse at 78% 48%, rgb(var(--weather-mist-rgb) / .52), transparent 58%);
+  mask-image: linear-gradient(transparent, #000 55%, #000);
+}
+
+.weather-has-motion .weather-mist-distant {
+  animation: weather-distant-drift 138s ease-in-out infinite alternate;
+}
+
+.weather-has-motion .weather-mist-ground {
+  animation: weather-ground-drift 94s ease-in-out infinite alternate;
+}
+
+.weather-effects[data-paused="true"] .weather-mist {
+  animation-play-state: paused;
+}
+
+@keyframes weather-distant-drift {
+  from { transform: translate3d(-2%, 0, 0); }
+  to { transform: translate3d(2%, -1%, 0); }
+}
+
+@keyframes weather-ground-drift {
+  from { transform: translate3d(1.6%, 0, 0); }
+  to { transform: translate3d(-1.6%, 1%, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .weather-effects .weather-mist { animation: none; transition: none; }
+}

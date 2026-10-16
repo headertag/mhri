@@ -123,7 +123,7 @@ function weatherFrom(data, now) {
 
 export function createEnvironmentService({ fetchImpl = fetch, now = Date.now, timeoutMs = 3500,
   weatherApiKey = process.env.OPEN_METEO_API_KEY, geoDailyLimit = 900,
-  weatherDailyLimit = 9000, maxConcurrent = 16 } = {}) {
+  weatherDailyLimit = 6000, maxConcurrent = 16 } = {}) {
   // One process-local salt: cached identities cannot be correlated between restarts.
   // Raw IPs exist only for the outgoing lookup; neither requests nor IPs are logged.
   const salt = randomBytes(32);

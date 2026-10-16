@@ -3,6 +3,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { FigureMesh } from './figure-mesh';
 import { SHADOW_BOUNDS } from './figure-shadow';
+import { Moon } from './moon';
+import { WeatherEffects } from './weather-effects';
+import type { SceneEnvironment } from './scene-environment';
+import './environment.css';
 
 // Display masks only. Every visible subject pixel comes from the supplied artwork.
 // Trace the wool, grip and tunic hem independently of the staff: the spaces
@@ -14,13 +18,25 @@ const staff = 'M 480 1117 L 496 1060 L 610 647 L 646 551 L 675 450 L 703 349 L 7
 // Only the visible painted arc, never a broad ring of the old sky.
 const halo = 'M 357 110 C 369 79 400 64 433 64 C 474 62 507 92 515 132 L 517 147';
 
-export function Artwork({ motion, original, depth, focus, cloudSpeed, neuromancer, signalMotion }: {motion:boolean;original:boolean;depth:number;focus:boolean;cloudSpeed:number;neuromancer:boolean;signalMotion:boolean}) {
+export function Artwork({ motion, original, depth, focus, cloudSpeed, neuromancer, signalMotion, scene: requestedScene }: {motion:boolean;original:boolean;depth:number;focus:boolean;cloudSpeed:number;neuromancer:boolean;signalMotion:boolean;scene:SceneEnvironment}) {
   const root = useRef<HTMLDivElement>(null);
   const environment = useRef<HTMLImageElement>(null);
   const shadow = useRef<HTMLCanvasElement>(null);
   const target = useRef({x:0,y:0,last:0,active:false});
   const speed = useRef(cloudSpeed);
   const [meshReady,setMeshReady]=useState(false);
+  const [scene, setScene] = useState<SceneEnvironment>(() => ({ ...requestedScene, enabled: false, landscape:'/art/landscape-wide.png',skyImage:'/art/cloud-sky.png',landscapeFilter:'none',skyFilter:'none',figureFilter:'none',moonOpacity:0 }));
+  const plates = scene;
+  useEffect(() => {
+    let active = true;
+    const load = (src:string) => { const img = new Image(); img.src = src; return img.decode(); };
+    Promise.all([load(requestedScene.landscape), load(requestedScene.skyImage)]).then(() => {
+      // Commit all layers together: the moon, figure lighting and weather must
+      // never get ahead of their background on a slow connection.
+      if (active) setScene(requestedScene);
+    }).catch(() => { /* Retain the last complete scene if a connection or image fails. */ });
+    return () => { active = false; };
+  }, [requestedScene]);
   useEffect(()=>{speed.current=cloudSpeed;},[cloudSpeed]);
   useEffect(() => {
     const el=root.current;
@@ -57,17 +73,22 @@ export function Artwork({ motion, original, depth, focus, cloudSpeed, neuromance
     target.current.y=Math.max(-1,Math.min(1,(e.clientY-r.top)/r.height*2-1));
     target.current.last=performance.now();
   }
-  return <div ref={root} className={`art-interaction ${original?'is-original':''} ${focus&&!original?'has-focus':''} ${neuromancer&&!original?'is-neuromancer':''} ${signalMotion?'has-signal-motion':''}`} tabIndex={0} role="region" aria-label="The Good Shepherd interactive artwork. Move your pointer, drag with a finger, or use the arrow keys to explore depth."
+  return <div ref={root} className={`art-interaction ${original?'is-original':''} ${focus&&!original?'has-focus':''} ${neuromancer&&!original?'is-neuromancer':''} ${signalMotion?'has-signal-motion':''} ${scene.enabled&&!original?'has-local-environment':''}`} data-period={scene.period} data-weather={scene.weather.kind} data-season={scene.season} data-preview={scene.preview} style={{'--landscape-light':plates.landscapeFilter,'--figure-light':scene.figureFilter,'--cloud-cover':scene.weather.cloudCover/100,'--ground-shadow-opacity':scene.period==='night'?.3:scene.weather.obscuresMoon?.55:1} as React.CSSProperties} tabIndex={0} role="region" aria-label="The Good Shepherd interactive artwork. Move your pointer, drag with a finger, or use the arrow keys to explore depth."
     onPointerDown={e=>{if(!motion||original)return;target.current.active=true;e.currentTarget.setPointerCapture(e.pointerId);point(e);}}
     onPointerMove={point} onPointerUp={e=>{target.current.active=false;target.current.last=performance.now();if(e.currentTarget.hasPointerCapture(e.pointerId))e.currentTarget.releasePointerCapture(e.pointerId);}}
     onPointerCancel={()=>{target.current.active=false;target.current.last=performance.now();}}
     onPointerLeave={()=>{target.current.active=false;target.current.last=performance.now();}}
     onKeyDown={e=>{const directions:Record<string,[number,number]>={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]};const dir=directions[e.key];if(dir&&motion&&!original){e.preventDefault();target.current={x:dir[0],y:dir[1],last:performance.now(),active:false};}}}>
     <div className="landscape-space" aria-hidden="true">
-      <img className="cloud-sky" src="/art/cloud-sky.png" alt="" draggable="false"/>
-      <img ref={environment} className="landscape-image landscape-foreground" src="/art/landscape-wide.png" alt="" draggable="false"/>
+      {(!scene.enabled||original)&&<img className="cloud-sky" src={plates.skyImage} alt="" draggable="false"/>}
+      <img ref={environment} className={`landscape-image ${scene.enabled&&!original?'seasonal-landscape':'landscape-foreground'}`} src={plates.landscape} alt="" draggable="false"/>
+      {scene.enabled&&!original&&<div className="celestial-space">
+        <img className="cloud-sky local-cloud-sky" src={plates.skyImage} style={{filter:plates.skyFilter}} alt="" draggable="false"/>
+        <Moon sky={scene.sky} opacity={scene.moonOpacity}/>
+        <div className="moon-cloud-veil" style={{opacity:scene.period==='night'?scene.weather.cloudCover/100*.7:0}}/>
+      </div>}
     </div>
-    <div className="near-landscape" aria-hidden="true"/>
+    <div className="near-landscape" style={{backgroundImage:`url("${plates.landscape}")`}} aria-hidden="true"/>
     <figure className="art-frame">
       <div className={`scene-window ${meshReady?'mesh-ready':''}`}>
         <div className="halo-aureole" aria-hidden="true" />
@@ -96,6 +117,7 @@ export function Artwork({ motion, original, depth, focus, cloudSpeed, neuromance
       </div>
       <figcaption className="sr-only">Le Bon Pasteur, Musée national de Port-Royal des Champs. The original painted figure appears over an extended landscape.</figcaption>
     </figure>
+    {scene.enabled&&!original&&<WeatherEffects weather={scene.weather} period={scene.period} motion={motion} windSpeedKmh={scene.windSpeedKmh} windDirectionDeg={scene.windDirectionDeg}/>}
     {neuromancer&&!original&&<div className="signal-atmosphere" aria-hidden="true">
       <div className="signal-tint"/>
       <div className="signal-lines"/>

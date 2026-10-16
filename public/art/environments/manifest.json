@@ -1,0 +1,118 @@
+{
+  "generated": "2026-10-16",
+  "method": "built-in image generation; Sharp WebP conversion",
+  "assets": [
+    {
+      "id": "autumn",
+      "src": "/art/environments/autumn.webp",
+      "width": 1774,
+      "height": 887,
+      "bytes": 356472,
+      "sha256": "e3401763b6ffb320de8d0619b70ad9f04507a6a64ed4edbae556be4d4ee98fa6"
+    },
+    {
+      "id": "clear-sky",
+      "src": "/art/environments/clear-sky.webp",
+      "width": 1774,
+      "height": 887,
+      "bytes": 164460,
+      "sha256": "b94a5ad90a28329547413685cb3945363b7a74e4a9fc927b38e4bd053d1d9799"
+    },
+    {
+      "id": "dawn-sky",
+      "src": "/art/environments/dawn-sky.webp",
+      "width": 1774,
+      "height": 887,
+      "bytes": 159690,
+      "sha256": "9ff3b98c961a414ed2d3287ea04fe341d067042bbb394ace342944c54a741740"
+    },
+    {
+      "id": "dawn",
+      "src": "/art/environments/dawn.webp",
+      "width": 1774,
+      "height": 887,
+      "bytes": 280142,
+      "sha256": "401b390c95023a4b9e6062de86269325e702fe51cd94d384f5b42df1b13f3de3"
+    },
+    {
+      "id": "dusk-sky",
+      "src": "/art/environments/dusk-sky.webp",
+      "width": 1774,
+      "height": 887,
+      "bytes": 138560,
+      "sha256": "4bf9688ce404f628c3b4d4e47befaa0f907d46809af06db5e8cd47ec903af890"
+    },
+    {
+      "id": "dusk",
+      "src": "/art/environments/dusk.webp",
+      "width": 1774,
+      "height": 887,
+      "bytes": 267958,
+      "sha256": "f91d593d8620c819ec7bf6793c0c456509d11cfc250dd54b26ec548434030214"
+    },
+    {
+      "id": "night-sky",
+      "src": "/art/environments/night-sky.webp",
+      "width": 1774,
+      "height": 887,
+      "bytes": 105030,
+      "sha256": "b9f791135247a5fce401747c4173ec27a54e02577bd63d7d85fc824ee4ab6228"
+    },
+    {
+      "id": "night",
+      "src": "/art/environments/night.webp",
+      "width": 1774,
+      "height": 887,
+      "bytes": 179820,
+      "sha256": "5e482087102a6c1dd04ec88e4dd35648369fe8f6ca9eae2c8d75562acce72aed"
+    },
+    {
+      "id": "overcast-sky",
+      "src": "/art/environments/overcast-sky.webp",
+      "width": 1774,
+      "height": 887,
+      "bytes": 114444,
+      "sha256": "0f642035be811c540d37f4d7c5506239fda435878d481bebcfb18f88e512e79e"
+    },
+    {
+      "id": "rain",
+      "src": "/art/environments/rain.webp",
+      "width": 1774,
+      "height": 887,
+      "bytes": 253746,
+      "sha256": "a9debddaa80a4aab83702c2173a9af04b4efa1473fccf8d6370eaa9b83a191a6"
+    },
+    {
+      "id": "snow",
+      "src": "/art/environments/snow.webp",
+      "width": 1774,
+      "height": 887,
+      "bytes": 397498,
+      "sha256": "bc9d4ec43b05119d606e63d6f0f6b60464a25ec3f28e70af6ef854ae97c71aec"
+    },
+    {
+      "id": "spring",
+      "src": "/art/environments/spring.webp",
+      "width": 1774,
+      "height": 887,
+      "bytes": 391964,
+      "sha256": "9c0f834fb2f0d779d9c3db8ed0199ca9c3da7ef330abde0f9ad3868af6db9f99"
+    },
+    {
+      "id": "summer",
+      "src": "/art/environments/summer.webp",
+      "width": 1774,
+      "height": 887,
+      "bytes": 398414,
+      "sha256": "b46a0f4919aaf4e7a0a5f399beea8f7c8f4bf13ff0f6bc71da3cea4a75f45ad7"
+    },
+    {
+      "id": "winter",
+      "src": "/art/environments/winter.webp",
+      "width": 1774,
+      "height": 887,
+      "bytes": 327126,
+      "sha256": "f450f0fd20c98d2cde295a30ce92213a3871621c1effe28296435727f064c8a3"
+    }
+  ]
+}

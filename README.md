@@ -4,7 +4,7 @@
 
 An immersive, full-viewport presentation of *Le Bon Pasteur* (*The Good Shepherd*). The intention is to give the viewer the feeling of standing inside the painting: the figure remains the centre of attention, while landscape, atmosphere, light and a restrained movement of fabric create depth.
 
-This repository contains the complete demonstration site, its artwork assets, and the Fly.io deployment workflow. The React application is built into static assets and served by an unprivileged NGINX container; visitors need no account, database connection, or API key.
+This repository contains the complete demonstration site, its artwork assets, and the Fly.io deployment workflow. A small native Node.js server serves the built React application and a same-origin location/weather API. Visitors need no account, GPS permission, or API key. Local time, modeled weather and season can now change the landscape while preserving the original painted figure.
 
 <img src="public/art/le-bon-pasteur.png" alt="The supplied reproduction of Le Bon Pasteur: Christ carries a sheep and wears a blue mantle over a pink tunic" width="240" />
 
@@ -64,6 +64,9 @@ The complete figure remains visible on both wide and narrow screens. Instead of 
 | --- | --- | --- |
 | Distant clouds | `public/art/cloud-sky.png` | A separate sky plate drifts very slowly behind the stationary tree silhouettes. |
 | Middle-distance landscape | `public/art/landscape-wide.png` plus `landscape-foreground-mask.svg` | The extended landscape fills the viewport; its sky is masked so cloud motion does not move the trees. |
+| Local environment variants | `public/art/environments/*.webp` | Separate painted landscapes and skies support time of day, seasons, wet ground and snow cover. |
+| Moon | `src/moon.tsx` and SunCalc | A separate shaded disc follows the calculated phase, orientation and horizon visibility; dense clouds hide it. |
+| Weather atmosphere | `src/weather-effects.tsx` | Wind-influenced rain, snow and hail, restrained mist and ground ripples add depth without repainting the figure. |
 | Near landscape | The same landscape, revealed with a lower-edge mask | A small opposing parallax movement provides foreground depth. |
 | Golden aureole | A circular CSS radial gradient | Sits behind the head and responds at an intermediate parallax depth. |
 | Ground shadow | Figure and crook silhouettes projected onto a Canvas 2D receiver | A single cast shadow stays anchored at the toe contacts, recedes back and right, and follows the moving cloth. |
@@ -82,7 +85,7 @@ The painting already contains its own illumination. An HDRI normally supplies en
 - **Inner-edge light wrap:** the normal WebGL view samples a 64 × 32 colour reference made from the extended landscape. Its mapping follows the responsive cover crop and parallax. A soft band roughly three original-image pixels wide blends a small amount of the adjacent environment into the subject’s edge, without expanding the silhouette or changing its opacity. It produces no outward glow.
 - **Restrained colour bounce:** shaded lower folds receive a very small environmental colour adjustment. It is an artistic approximation, not physically based relighting; the face and bright areas receive no bounce adjustment.
 
-The colour reference is an ordinary low-dynamic-range image, **not an HDRI map**. It does not simulate reflections or recover missing geometry. The source reproduction is unchanged, and **Show original painting** bypasses all these interventions. Neuromancer keeps its separate RGB treatment. If WebGL or the landscape colour reference is unavailable, the normal painted colours remain available; the corrected silhouette and ground shadows do not depend on the colour-integration pass. The small edge texture is prepared once, and the additional GPU textures are released with the renderer.
+The colour reference is an ordinary low-dynamic-range image, **not an HDRI map**. It does not simulate reflections or recover missing geometry. The source reproduction is unchanged, and **Show original painting** bypasses all these interventions. Neuromancer keeps its separate RGB treatment. If WebGL or the landscape colour reference is unavailable, the normal painted colours remain available; the corrected silhouette and ground shadows do not depend on the colour-integration pass. The small edge texture is refreshed when the environment plate changes, and the additional GPU textures are released with the renderer.
 
 ### Fabric mesh
 
@@ -106,6 +109,49 @@ Pointer movement, touch dragging and arrow keys steer the scene. Position change
 
 At **1×**, horizontal cloud movement completes a cycle in two minutes, with an amplitude of 30 CSS pixels. At **4×**, the cycle takes 30 seconds, producing an obvious drift. Vertical motion has a different period and a smaller three-pixel amplitude. Extra sky overscan covers the increased travel without exposing empty edges. The default is **3×**. The **Cloud speed** slider ranges from **0× to 4×** and integrates speed over time, so changing speed does not jump the clouds to a different position. Cloud motion is independent of the Depth slider and stops when Motion is off.
 
+## Local time, weather, seasons and the moon
+
+**Local time & weather** starts enabled and can be turned off in **About the painting** to restore the established landscape. Automatic conditions use the visitor's approximate city-level coordinates and IANA time zone, not the Fly machine's Toronto location or a single time zone for an entire country. IP geolocation can reflect a VPN exit, mobile carrier or internet provider. **Not your area? Choose a city** provides a city search and explicit override; **Use my approximate IP location** removes that override.
+
+The browser refreshes environment data every 30 minutes while visible and checks again after a long absence. A minute clock updates the astronomical scene between weather refreshes. If a provider fails, known location remains useful for the sun, moon and season, but weather is marked unavailable. Without any known location, the device clock supplies a simple time-of-day fallback; the app does not invent a geographically visible moon or claim guessed weather is current. Weather observations older than three hours are not used.
+
+### Painted variants and atmospheric interpretation
+
+Fourteen generated WebP assets provide nine landscapes—dawn, dusk, night, spring, summer, autumn, dormant winter, rain and snow—and five sky plates—dawn, dusk, night, clear and overcast. They are alternatives to the project's extended landscape, not alterations of `le-bon-pasteur.png` or discovered historical versions. The [generation record](docs/environment-art-prompts.md) contains the prompts and source references; [the manifest](public/art/environments/manifest.json) records dimensions and hashes.
+
+Time, season and weather are separate inputs. Seasonal foliage is preserved with runtime lighting treatments for dawn, dusk and night. Rain or hail uses the rain landscape in summer/tropical scenes, while retaining spring, autumn or dormant winter foliage with wet lighting and precipitation in those seasons. Snowfall selects the separate snow landscape. **Winter does not automatically mean snow:** the winter asset shows dormant vegetation without snow, while snowfall selects its own asset and particles. Meteorological seasons reverse in the southern hemisphere. Tropical locations retain green foliage instead of receiving an artificial northern winter. These are artistic climate generalizations; they do not model every local biome or accumulated snow depth.
+
+WMO weather codes distinguish clear, cloudy, overcast, fog, drizzle, freezing rain, rain, snow, snow grains, showers, thunderstorms and hail. A bounded Canvas layer renders precipitation with several apparent depths and subdued visibility around the face. Wind influences its drift. Mist softens distance and small rain ripples suggest wet ground. There are no sounds or flashing lightning effects. Motion off or reduced motion retains a static atmosphere, and animation pauses in hidden tabs. Sky and landscape images are decoded before the full scene changes, keeping figure lighting, moon and weather aligned with the displayed background. If image loading fails, the previous complete scene remains visible.
+
+### Astronomy rather than a fixed moon picture
+
+[SunCalc 2.1.1](https://github.com/mourner/suncalc) calculates solar altitude and the moon's phase, illuminated fraction, altitude, azimuth and orientation from the current UTC instant and approximate coordinates. Solar altitude determines day, dawn, dusk and night, including polar day/night. The moon is rendered separately; no moon is baked into an environment image. In automatic mode it is hidden below the local horizon and behind overcast skies, dense clouds, fog and thunderstorms. The overcast night uses a starless sky rather than showing stars through opaque cloud.
+
+The landscape has no geographic compass bearing. The moon's screen position uses a restrained right-hand composition informed by its altitude and azimuth; this is not an astronomical sky chart. **Explore the other skies → Night** keeps today's calculated phase but lifts the preview moon to a demonstration altitude. Preview mode is labeled and does not claim that the moon is currently above the visitor's horizon.
+
+### Data flow, privacy and limits
+
+| Endpoint | Purpose and behavior |
+| --- | --- |
+| `GET /api/environment` | Uses Fly's `Fly-Client-IP` header to request approximate location, then requests modeled weather for rounded coordinates. Returns explicit `live`, `location-only` or `unavailable` status. |
+| `GET /api/environment?latitude=…&longitude=…&timeZone=…&city=…` | Uses a validated selected city instead of an IP lookup. Optional `countryCode` is a two-letter country code. |
+| `GET /api/places?q=…` | Searches city names of 2–80 characters and returns up to five choices with region, country and IANA time zone. |
+| `GET /healthz` | Returns a small health response without calling any external provider. |
+
+Production trusts Fly's client-IP header, not arbitrary `X-Forwarded-For`. Local development deliberately has no automatic IP location: locating the developer server would give a misleading result. The server rejects non-public IP addresses and invalid coordinates/time zones. Coordinates are rounded to **0.1° before the weather lookup**. That is a coarse weather area, not a claim of precise physical location.
+
+The raw visitor IP is sent over HTTPS to **IPWhois** for the lookup. This application does not return it to the browser, write it to request logs or store it persistently. Its bounded in-memory cache uses a salted identifier that changes on restart. Open-Meteo receives rounded coordinates, not the visitor's IP; city search sends the entered search text. External providers and hosting infrastructure have their own data handling policies. No GPS access or database is used.
+
+Browser settings are stored in `mhri-view`; an explicitly selected city is stored in `mhri-place`. Automatic IP location is not persisted in browser storage. Disabling local conditions stops automatic environment requests. The browser sends the selected city's coordinates and time zone when an override is active.
+
+Geolocation and city search are cached for one hour, weather by rounded location/time-zone cell for ten minutes, and provider failures briefly for one minute. Caches, concurrent fetches, response sizes and per-client request rates are bounded. The process has daily request budgets of **900 IP lookups, 6,000 forecasts and 1,000 city searches**, with a provider `429` cooldown. These limits reset on process restart and are guardrails, not a durable account-wide quota across multiple machines. Provider requests time out after 3.5 seconds; API responses use `Cache-Control: no-store`.
+
+- **Approximate IP location:** [IPWhois documentation](https://ipwhois.io/documentation). Its free endpoint currently allows commercial use and up to 1,000 requests/day, without an uptime guarantee.
+- **Modeled weather:** [Open-Meteo](https://open-meteo.com/en/docs), data under [CC BY 4.0](https://open-meteo.com/en/licence). Current conditions are weather-model estimates, not a direct sensor measurement at the visitor. Weather codes and cloud cover are adapted into an artistic scene.
+- **City names and locations:** Open-Meteo's [geocoding service](https://open-meteo.com/en/docs/geocoding-api), based on [GeoNames](https://www.geonames.org/).
+
+Open-Meteo's free service is for **noncommercial use**, up to 10,000 calls/day without an uptime guarantee; requests with many variables can count as more than one call. A commercial deployment needs the appropriate [Open-Meteo plan](https://open-meteo.com/en/pricing). Setting the optional Fly runtime secret `OPEN_METEO_API_KEY` selects its customer weather and geocoding endpoints. No paid subscription is created by the application. Provider terms and limits were checked on 16 October 2026.
+
 ## Lettering and the quiet interface
 
 **MHRI** always appears as all four letters, expanding to **Magnifica Humanitas Redemptoris Iesu** in the accessible name and copyright notice.
@@ -128,8 +174,11 @@ Open **About the painting** at the bottom right to find:
 | Atmospheric focus | Toggles the restrained blur on landscape layers. |
 | Show original painting | Shows the complete supplied portrait without the animated subject treatment; turns Neuromancer mode off. |
 | Neuromancer mode | Off by default; check to enable the holographic treatment. |
+| Local time & weather | On by default; adapts atmosphere to approximate local conditions. Turning it off restores the established landscape. |
+| Not your area? Choose a city | Searches for a city and saves an explicit browser-local override. |
+| Explore the other skies | Independently previews four times of day, seven weather choices and four seasons; Automatic restores the relevant local input. |
 
-The application respects the device’s `prefers-reduced-motion` setting at startup and stops motion if that preference changes to reduced motion. A viewer may also use the Motion control. Preferences are saved only in the browser’s `localStorage`, under `mhri-view`; they are not transmitted to a server. The 3× cloud-speed default is applied once to older saved settings; subsequent speed adjustments are remembered, and other preferences are preserved.
+The application respects the device’s `prefers-reduced-motion` setting at startup and stops motion if that preference changes to reduced motion. A viewer may also use the Motion control. Viewing preferences are saved only in the browser’s `localStorage`, under `mhri-view`; the separate selected-city value is sent to the environment API when used. The 3× cloud-speed default is applied once to older saved settings; subsequent speed adjustments are remembered, and other preferences are preserved. Atmosphere previews are temporary and do not overwrite the saved city.
 
 The dialog uses Base UI primitives with keyboard focus management, accessible names and switches. The artwork region supports arrow keys; links and buttons have visible focus states. A static portrait is supplied for visitors without JavaScript. No formal WCAG conformance audit is claimed.
 
@@ -147,33 +196,36 @@ The checkbox **starts unchecked on every page load** and is deliberately exclude
 
 ## Run locally
 
-Use Node.js **22.13 or newer**; `.nvmrc` selects the Node 22 line used by deployment.
+Use Node.js **22.13 or newer**; `.nvmrc` selects the Node 22 line used by deployment. Use npm 10 for lockfile maintenance, matching the production Node 22 image; its optional cross-platform dependencies must remain in the lockfile.
 
 ```bash
 npm ci
-npm run dev
+npm test
+npm run build
+npm start
 ```
 
-For the exact static production build:
+The full production server is then available at `http://127.0.0.1:8080`. Run the HTTP smoke checks against that locally running server:
 
 ```bash
-npm run build
-npm run preview
+node scripts/check-server.mjs http://127.0.0.1:8080
 ```
 
-`npm run build` checks TypeScript and writes the static site to `dist/`. The preview command prints its local URL. Open the site through a web server rather than directly as a `file://` document, because modules and the artwork texture need HTTP URLs.
+For hot-reload development, leave the Node server running and run `npm run dev` in a second terminal. Vite proxies `/api` to `127.0.0.1:8080`. **Choose a city in About for local weather testing**: no Fly edge is present locally, so automatic IP lookup returns an explicit unavailable response. Do not set a fake Fly environment variable or spoof proxy headers to work around that behavior.
+
+`npm run build` checks TypeScript and writes the frontend to `dist/`. `npm run preview` serves only Vite's static preview and is not the complete API-backed application. Open the site through a web server rather than a `file://` document, because modules, API calls and artwork textures need HTTP URLs. Tests use mocked provider responses and do not require API access or keys.
 
 ## Deployment to Fly.io
 
 The site runs as the **mhri** Fly application in the **Pretiola** organization, in **Toronto (yyz)**. The preview address is https://mhri.fly.dev/; the canonical public address remains https://mhri.net/.
 
-A multi-stage Docker build uses Node 22 and the existing locked dependencies to check and bundle the React application. The final container runs unprivileged NGINX on port 8080. Fly Proxy terminates TLS and enforces HTTPS. NGINX redirects `www.mhri.net` to `https://mhri.net` while preserving the path and query string. Missing files return 404; the HTML is revalidated, hashed bundles have immutable caching, and artwork/font files have a one-hour cache lifetime.
+A multi-stage Docker build uses Node 22 and locked dependencies to run tests, check TypeScript and bundle the React application. The final container runs `server/index.mjs` as the unprivileged `node` user on port 8080. It contains the server and built assets, without the build toolchain or `node_modules`. Fly Proxy terminates TLS and enforces HTTPS. The Node server redirects `www.mhri.net` to `https://mhri.net` while preserving the path and query string. Missing files return 404; HTML is revalidated, hashed bundles have immutable caching, and artwork/font files have a one-hour cache lifetime. Environment responses and redirects are not cached by browsers.
 
-The app uses one shared CPU and 256 MB of memory. Like the [Pretiola deployment pattern](https://github.com/pretiola/www), it stops when idle and starts on demand. The first request after an idle period may take longer. There is no database, persistent volume, application secret, or server-side image processing. The original image, masks, WebGL treatment and accessibility preferences are unchanged.
+The app uses one shared CPU and 256 MB of memory. Like the [Pretiola deployment pattern](https://github.com/pretiola/www), it stops when idle and starts on demand. The first request after an idle period may take longer, and in-memory weather caches restart with the process. There is no database, persistent volume or server-side image generation. The current noncommercial provider setup requires no runtime API secret; an optional `OPEN_METEO_API_KEY` supports a customer plan. The original image, masks and cloth geometry remain unchanged.
 
 ### GitHub Actions
 
-`.github/workflows/deploy.yml` builds and checks the production container on pull requests and pushes to `main`. It verifies health, HTML delivery, artwork and JavaScript MIME types, caching, missing-file handling and the canonical www redirect. After these checks pass, pushes to `main` and manual workflow runs deploy through `flyctl deploy --remote-only --ha=false`.
+`.github/workflows/deploy.yml` builds and checks the production container on pull requests and pushes to `main`. The build runs the deterministic backend, astronomy and scene-selection tests. HTTP smoke checks verify health, HTML delivery, artwork and JavaScript MIME types, caching, missing-file handling, API fallback and invalid-input behavior, and the canonical www redirect. After these checks pass, pushes to `main` and manual workflow runs deploy through `flyctl deploy --remote-only --ha=false`. Local smoke checks deliberately expect no Fly-provided visitor location; use live endpoint checks separately after deployment.
 
 The sole required repository secret is **FLY_API_TOKEN**, an app-scoped deployment token for **mhri**. It cannot deploy the other Pretiola applications. The token configured during migration expires after one year; rotate it before September 2027. Do not place a personal Fly login token or secret value in this repository. No Pages/OIDC deployment permissions are needed.
 
@@ -201,6 +253,14 @@ index.html                    Page metadata, canonical URL, favicon and entry po
 src/main.tsx                  Static React entry point
 src/page.tsx                  Homepage, About dialog, settings, copyright, wordmark filter
 src/artwork.tsx               Scene layers, masks, shadows and parallax/cloud movement
+src/environment.ts           API fetching, selected-city persistence and graceful fallback
+src/environment-settings.tsx  About dialog location search and atmosphere preview controls
+src/scene-environment.ts      Selects landscape/sky assets, lighting and weather state
+src/scene-astronomy.ts        SunCalc positions, lunar visibility, seasons and WMO codes
+src/moon.tsx                  Phase-aware moon disc and restrained sky positioning
+src/weather-effects.tsx       Bounded precipitation and mist animation
+src/environment.css           Environment lighting and settings layout
+src/weather-effects.css       Atmospheric overlays and reduced-motion behavior
 src/figure-mesh.tsx           WebGL grid, texture, shared clock and fallback lifecycle
 src/figure-motion.ts         Cloth deformation for the visible mesh and shadow contour
 src/figure-shadow.ts         Figure-derived ground projection and graded penumbra
@@ -209,16 +269,24 @@ src/globals.css               Responsive composition and visual styling
 src/fonts.css                 Self-hosted font declarations
 src/components/ui/            Existing dialog, switch, slider and button primitives
 public/art/                   Original reproduction, extended plates and landscape mask
+public/art/environments/      Generated time/weather/season WebPs and asset manifest
 public/fonts/                 Fonts and their SIL Open Font License notices
-Dockerfile                    Node build and unprivileged NGINX runtime
-nginx.conf                    Static delivery, cache rules, www redirect and health check
+server/index.mjs              Native HTTP server, static caching, API routes, redirect and health
+server/environment.mjs        Validated IP/city/weather providers, limits and memory caches
+server/*.test.mjs             Deterministic provider and HTTP tests
+tests/*.test.ts               Astronomy and environment selection regression tests
+Dockerfile                    Node build/test stage and unprivileged Node runtime
 fly.toml                      Fly app, region, HTTPS, machine size and health checks
 scripts/check-server.mjs       Production HTTP smoke checks
 docs/fly-dns.md                Exact GoDaddy records and certificate cutover steps
+docs/environment-art-prompts.md Source references and environment generation prompts
+docs/environment-uat.md        Manual UAT checklist and automated-coverage boundaries
 .github/workflows/deploy.yml   Build and publish pipeline
 ```
 
-The Fly.io edition reuses the approved prototype’s artwork, masks, shaders, controls and styling. Its hosting wrapper is a Vite/React bundle served by an NGINX application container. It has no dependency on the private UAT URL, Sites authentication, server functions or runtime environment secrets.
+The Fly.io edition reuses the approved prototype's artwork, masks and core composition. Its Vite/React bundle and native Node API have no dependency on the private UAT URL or Sites authentication. Outbound provider requests are limited to the location, weather and city-search services described above; astronomy is calculated in the browser.
+
+The 16 October environment work includes deterministic coverage of **112 preview combinations** (4 times × 7 weather choices × 4 seasons), astronomical edge cases, provider failures and HTTP delivery. These tests confirm selection logic and available assets, not the visual quality of every rendered combination. Interactive browser automation was unavailable in this implementation session; **manual desktop/mobile visual UAT remains pending**. Follow [the environment UAT guide](docs/environment-uat.md) before treating that visual review as complete.
 
 For changes, build locally and review the following before pushing:
 
